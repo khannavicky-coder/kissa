@@ -1,15 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Nunito:wght@400;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Kissa — warm storybook design system. All colors HSL. */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Brand surface — deep indigo night */
+    --background: 244 55% 14%;
+    --foreground: 44 90% 88%;
+
+    /* Golden brand */
+    --gold: 43 92% 64%;
+    --gold-soft: 38 88% 76%;
+    --gold-deep: 32 78% 48%;
+    --cream: 44 80% 94%;
+
+    /* Indigo scale */
+    --indigo-deep: 246 60% 9%;
+    --indigo: 244 55% 14%;
+    --indigo-soft: 244 42% 22%;
+    --indigo-mist: 240 30% 32%;
+
+    /* Accent — soft coral / kitten */
+    --kitten: 18 90% 66%;
+    --plum: 280 40% 30%;
+
+    /* Gradients */
+    --gradient-night: radial-gradient(ellipse at top, hsl(244 55% 22%) 0%, hsl(246 60% 9%) 70%);
+    --gradient-gold: linear-gradient(135deg, hsl(var(--gold)) 0%, hsl(var(--gold-deep)) 100%);
+    --gradient-aurora: radial-gradient(circle at 20% 10%, hsl(280 50% 30% / 0.5), transparent 50%),
+                       radial-gradient(circle at 80% 20%, hsl(200 60% 30% / 0.4), transparent 50%);
+
+    /* Shadows & glow */
+    --shadow-gold: 0 10px 40px -10px hsl(var(--gold) / 0.55);
+    --shadow-soft: 0 20px 60px -20px hsl(246 60% 4% / 0.6);
+    --glow-star: 0 0 24px hsl(var(--gold) / 0.6);
+
+    /* Motion */
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    --card: 244 50% 18%;
+    --card-foreground: 44 90% 88%;
 
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
