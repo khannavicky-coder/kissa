@@ -210,12 +210,16 @@ const Record = () => {
     setTranscript("");
     setStory("");
     try {
-      const base64 = await blobToBase64(audioBlob);
+      const mime = audioBlob.type || "audio/webm";
+      const ext = mime.includes("mp4") ? "mp4" : mime.includes("mpeg") ? "mp3" : "webm";
+      const formData = new FormData();
+      formData.append("audio", audioBlob, `recording.${ext}`);
+
       const { data: tData, error: tErr } = await supabase.functions.invoke("transcribe-recording", {
-        body: { audio: base64, mimeType: audioBlob.type || "audio/webm" },
+        body: formData,
       });
       if (tErr) throw new Error(tErr.message || "Transcription failed");
-      const text = (tData?.text ?? "").toString().trim();
+      const text = (tData?.transcript ?? "").toString().trim();
       if (!text) throw new Error("We couldn't hear any words — try recording again.");
       setTranscript(text);
 
