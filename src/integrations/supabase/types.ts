@@ -74,6 +74,148 @@ export type Database = {
         }
         Relationships: []
       }
+      stories: {
+        Row: {
+          audio_url: string | null
+          characters: string | null
+          child_id: string
+          created_at: string
+          edited_text: string | null
+          id: string
+          last_played_at: string | null
+          length: string
+          lesson: string | null
+          original_text: string | null
+          parent_user_id: string
+          played_count: number
+          setting: string | null
+          status: string
+          theme: string | null
+          title: string | null
+          updated_at: string
+          voice_id: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          characters?: string | null
+          child_id: string
+          created_at?: string
+          edited_text?: string | null
+          id?: string
+          last_played_at?: string | null
+          length?: string
+          lesson?: string | null
+          original_text?: string | null
+          parent_user_id: string
+          played_count?: number
+          setting?: string | null
+          status?: string
+          theme?: string | null
+          title?: string | null
+          updated_at?: string
+          voice_id?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          characters?: string | null
+          child_id?: string
+          created_at?: string
+          edited_text?: string | null
+          id?: string
+          last_played_at?: string | null
+          length?: string
+          lesson?: string | null
+          original_text?: string | null
+          parent_user_id?: string
+          played_count?: number
+          setting?: string | null
+          status?: string
+          theme?: string | null
+          title?: string | null
+          updated_at?: string
+          voice_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stories_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_edits: {
+        Row: {
+          created_at: string
+          edit_distance: number | null
+          edited_text: string
+          id: string
+          original_text: string
+          parent_user_id: string
+          story_id: string
+        }
+        Insert: {
+          created_at?: string
+          edit_distance?: number | null
+          edited_text: string
+          id?: string
+          original_text: string
+          parent_user_id: string
+          story_id: string
+        }
+        Update: {
+          created_at?: string
+          edit_distance?: number | null
+          edited_text?: string
+          id?: string
+          original_text?: string
+          parent_user_id?: string
+          story_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_edits_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_profiles: {
+        Row: {
+          created_at: string
+          elevenlabs_voice_id: string | null
+          error_message: string | null
+          id: string
+          parent_user_id: string
+          sample_path: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          elevenlabs_voice_id?: string | null
+          error_message?: string | null
+          id?: string
+          parent_user_id: string
+          sample_path?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          elevenlabs_voice_id?: string | null
+          error_message?: string | null
+          id?: string
+          parent_user_id?: string
+          sample_path?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
