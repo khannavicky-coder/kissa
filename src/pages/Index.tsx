@@ -66,9 +66,13 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate("/", { replace: true });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (session) navigate("/home", { replace: true });
     });
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) navigate("/home", { replace: true });
+    });
+    return () => sub.subscription.unsubscribe();
   }, [navigate]);
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
@@ -107,7 +111,7 @@ const Index = () => {
   const handleOAuth = async (provider: "google" | "apple") => {
     setLoading(provider);
     const { error } = await lovable.auth.signInWithOAuth(provider, {
-      redirect_uri: `${window.location.origin}/`,
+      redirect_uri: `${window.location.origin}/home`,
     });
     if (error) {
       setLoading(null);

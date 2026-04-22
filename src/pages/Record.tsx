@@ -1,53 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Mic, Pause, Play, RotateCcw, Sparkles, Square, Wand2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, CheckCircle2, Loader2, Mic, Pause, Play, RotateCcw, Sparkles, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-
+import { Stars } from "@/components/AppShell";
+import { useAuth } from "@/hooks/useAuth";
+import { getProfile, getVoiceProfile, type VoiceProfile } from "@/lib/supabaseService";
 
 const MAX_SECONDS = 30;
 const BAR_COUNT = 32;
-
 type Phase = "idle" | "recording" | "done";
 
-const Stars = () => (
-  <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-    {[
-      { top: "8%", left: "12%", size: 6, delay: "0s" },
-      { top: "14%", left: "82%", size: 4, delay: "0.6s" },
-      { top: "30%", left: "6%", size: 3, delay: "1.2s" },
-      { top: "44%", left: "90%", size: 4, delay: "1.8s" },
-      { top: "70%", left: "94%", size: 5, delay: "1.5s" },
-      { top: "86%", left: "20%", size: 4, delay: "2.1s" },
-    ].map((s, i) => (
-      <span
-        key={i}
-        className="absolute rounded-full animate-twinkle"
-        style={{
-          top: s.top,
-          left: s.left,
-          width: s.size,
-          height: s.size,
-          animationDelay: s.delay,
-          boxShadow: "0 0 12px hsl(var(--gold) / 0.7)",
-          backgroundColor: "hsl(var(--gold-soft))",
-        }}
-      />
-    ))}
-  </div>
-);
-
 const Record = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [phase, setPhase] = useState<Phase>("idle");
-  const [elapsed, setElapsed] = useState(0); // ms
+  const [elapsed, setElapsed] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [levels, setLevels] = useState<number[]>(() => new Array(BAR_COUNT).fill(0.08));
-  const [transcript, setTranscript] = useState<string>("");
-  const [story, setStory] = useState<string>("");
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [cloning, setCloning] = useState(false);
+  const [voiceProfile, setVoiceProfile] = useState<VoiceProfile | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -61,9 +37,12 @@ const Record = () => {
 
   useEffect(() => {
     document.title = "Record your voice · Kissa";
-    const desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.setAttribute("content", "Record a 30-second voice greeting for your child in Kissa.");
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    getVoiceProfile(user.id).then(setVoiceProfile);
+  }, [user]);
 
   const cleanup = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -80,26 +59,15 @@ const Record = () => {
     sourceRef.current = null;
   }, []);
 
-  useEffect(() => {
-    return () => {
-      cleanup();
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(() => () => { cleanup(); if (audioUrl) URL.revokeObjectURL(audioUrl); }, [cleanup, audioUrl]);
 
   const stopRecording = useCallback(() => {
     const mr = mediaRecorderRef.current;
-    if (mr && mr.state !== "inactive") {
-      mr.stop();
-    }
+    if (mr && mr.state !== "inactive") mr.stop();
   }, []);
 
   const startRecording = useCallback(async () => {
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-      setAudioUrl(null);
-    }
+    if (audioUrl) { URL.revokeObjectURL(audioUrl); setAudioUrl(null); }
     setElapsed(0);
     chunksRef.current = [];
 
@@ -114,18 +82,12 @@ const Record = () => {
     }
     streamRef.current = stream;
 
-    // MediaRecorder
-    const mimeType =
-      MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : MediaRecorder.isTypeSupported("audio/mp4")
-        ? "audio/mp4"
-        : "";
+    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+      ? "audio/webm;codecs=opus"
+      : MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "";
     const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
     mediaRecorderRef.current = recorder;
-    recorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
-    };
+    recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunksRef.current.push(e.data); };
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
       const url = URL.createObjectURL(blob);
@@ -136,7 +98,6 @@ const Record = () => {
       cleanup();
     };
 
-    // Web Audio analyser for waveform
     const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new AudioCtx();
     audioContextRef.current = ctx;
@@ -150,26 +111,18 @@ const Record = () => {
 
     const buffer = new Uint8Array(analyser.frequencyBinCount);
     const tick = () => {
-      const now = performance.now();
-      const ms = now - startTimeRef.current;
+      const ms = performance.now() - startTimeRef.current;
       setElapsed(ms);
-
       analyser.getByteFrequencyData(buffer);
-      // Sample BAR_COUNT bars from buffer
       const bars: number[] = [];
       const step = Math.floor(buffer.length / BAR_COUNT);
       for (let i = 0; i < BAR_COUNT; i++) {
         let sum = 0;
         for (let j = 0; j < step; j++) sum += buffer[i * step + j];
-        const avg = sum / step / 255;
-        bars.push(Math.max(0.08, Math.min(1, avg * 1.4)));
+        bars.push(Math.max(0.08, Math.min(1, (sum / step / 255) * 1.4)));
       }
       setLevels(bars);
-
-      if (ms >= MAX_SECONDS * 1000) {
-        stopRecording();
-        return;
-      }
+      if (ms >= MAX_SECONDS * 1000) { stopRecording(); return; }
       rafRef.current = requestAnimationFrame(tick);
     };
 
@@ -180,86 +133,43 @@ const Record = () => {
   }, [audioUrl, cleanup, stopRecording]);
 
   const handleReRecord = () => {
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-      setAudioUrl(null);
-    }
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    setAudioUrl(null);
     setAudioBlob(null);
-    setTranscript("");
-    setStory("");
     setElapsed(0);
     setIsPlaying(false);
     setPhase("idle");
   };
 
-  const handleGenerateStory = async () => {
-    if (!audioBlob) return;
-    setIsGenerating(true);
-    setTranscript("");
-    setStory("");
-    try {
-      const mime = audioBlob.type || "audio/webm";
-      const ext = mime.includes("mp4") ? "mp4" : mime.includes("mpeg") ? "mp3" : "webm";
-      const formData = new FormData();
-      formData.append("audio", audioBlob, `recording.${ext}`);
-
-      const { data: tData, error: tErr } = await supabase.functions.invoke("transcribe-recording", {
-        body: formData,
-      });
-      if (tErr) throw new Error(tErr.message || "Transcription failed");
-      const text = (tData?.transcript ?? "").toString().trim();
-      if (!text) throw new Error("We couldn't hear any words — try recording again.");
-      setTranscript(text);
-
-      // Pull child info if available
-      let childName: string | undefined;
-      let childAge: number | undefined;
-      const { data: userRes } = await supabase.auth.getUser();
-      if (userRes?.user) {
-        const { data: kids } = await supabase
-          .from("children")
-          .select("name, age")
-          .eq("parent_user_id", userRes.user.id)
-          .order("created_at", { ascending: true })
-          .limit(1);
-        if (kids && kids.length > 0) {
-          childName = kids[0].name;
-          childAge = kids[0].age;
-        }
-      }
-
-      const { data: sData, error: sErr } = await supabase.functions.invoke("generate-story", {
-        body: { transcript: text, childName, childAge },
-      });
-      if (sErr) {
-        const msg = sErr.message || "Story generation failed";
-        if (msg.includes("429")) throw new Error("Too many requests — try again in a moment.");
-        if (msg.includes("402")) throw new Error("AI credits exhausted. Add credits in Workspace → Usage.");
-        throw new Error(msg);
-      }
-      setStory((sData?.story ?? "").toString());
-      toast.success("Your bedtime story is ready ✨");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Something went wrong";
-      toast.error(msg);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   const togglePlay = () => {
     const el = audioElRef.current;
     if (!el) return;
-    if (el.paused) {
-      el.play();
-      setIsPlaying(true);
-    } else {
-      el.pause();
-      setIsPlaying(false);
+    if (el.paused) { el.play(); setIsPlaying(true); } else { el.pause(); setIsPlaying(false); }
+  };
+
+  const handleCloneVoice = async () => {
+    if (!audioBlob || !user) return;
+    setCloning(true);
+    try {
+      const profile = await getProfile(user.id);
+      const ext = audioBlob.type.includes("mp4") ? "mp4" : audioBlob.type.includes("mpeg") ? "mp3" : "webm";
+      const formData = new FormData();
+      formData.append("audio", audioBlob, `sample.${ext}`);
+      formData.append("name", profile?.parent_name ?? user.email ?? user.id);
+
+      const { data, error } = await supabase.functions.invoke("clone-voice", { body: formData });
+      if (error) throw new Error(error.message);
+      if (!data?.voiceId) throw new Error("No voice id returned");
+
+      toast.success("Your voice is ready ✨");
+      navigate("/home");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Voice cloning failed");
+    } finally {
+      setCloning(false);
     }
   };
 
-  // Progress ring math
   const size = 264;
   const stroke = 10;
   const radius = (size - stroke) / 2;
@@ -271,17 +181,16 @@ const Record = () => {
   return (
     <main className="relative min-h-screen w-full overflow-hidden bg-gradient-aurora">
       <Stars />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full opacity-30 blur-3xl"
-        style={{ background: "hsl(var(--gold) / 0.6)" }}
-      />
+      <div aria-hidden className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full opacity-30 blur-3xl" style={{ background: "hsl(var(--gold) / 0.6)" }} />
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-md flex-col px-6 pb-10 pt-8 sm:max-w-lg">
         <header className="flex items-center justify-between animate-fade-up">
+          <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm font-semibold text-gold-soft hover:text-gold">
+            <ArrowLeft className="h-4 w-4" /> Back
+          </button>
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-gold" />
-            <span className="font-display text-xl font-bold tracking-tight text-gold">Kissa</span>
+            <span className="font-display text-lg font-bold text-gold">Kissa</span>
           </div>
         </header>
 
@@ -290,66 +199,41 @@ const Record = () => {
             {phase === "done" ? "Sounds lovely!" : "Record your voice"}
           </h1>
           <p className="mx-auto mt-3 max-w-xs text-sm text-cream/75">
-            {phase === "idle" && "Tap the moon to record up to 30 seconds of love for your little one."}
+            {phase === "idle" && "Read this aloud for 30 seconds: \"Once upon a time, in a cozy little garden, lived a tiny star who dreamed of bedtime stories…\""}
             {phase === "recording" && "Speak softly — Kissa is listening."}
-            {phase === "done" && "Have a listen, then keep it or record again."}
+            {phase === "done" && "Have a listen, then save your voice forever."}
           </p>
+          {voiceProfile?.status === "ready" && phase === "idle" && (
+            <p className="mt-3 inline-flex items-center gap-1 rounded-full bg-card/60 px-3 py-1 text-xs text-gold">
+              <CheckCircle2 className="h-3 w-3" /> Voice already saved — record again to replace
+            </p>
+          )}
         </section>
 
-        {/* Recorder */}
         <div className="mt-10 flex flex-col items-center animate-fade-up" style={{ animationDelay: "0.1s" }}>
           <div className="relative" style={{ width: size, height: size }}>
-            {/* Pulsing aura */}
             {phase === "recording" && (
               <>
                 <div className="absolute inset-0 rounded-full bg-gold/15 animate-ping" />
                 <div className="absolute inset-4 rounded-full bg-gold/10 animate-ping" style={{ animationDelay: "0.4s" }} />
               </>
             )}
-
-            {/* Progress ring */}
             <svg width={size} height={size} className="absolute inset-0 -rotate-90">
+              <circle cx={size / 2} cy={size / 2} r={radius} stroke="hsl(var(--indigo-soft))" strokeWidth={stroke} fill="none" />
               <circle
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                stroke="hsl(var(--indigo-soft))"
-                strokeWidth={stroke}
-                fill="none"
-              />
-              <circle
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                stroke="hsl(var(--gold))"
-                strokeWidth={stroke}
-                strokeLinecap="round"
-                fill="none"
-                strokeDasharray={circumference}
-                strokeDashoffset={dashOffset}
-                style={{
-                  transition: phase === "recording" ? "stroke-dashoffset 0.1s linear" : "stroke-dashoffset 0.4s ease",
-                  filter: "drop-shadow(0 0 12px hsl(var(--gold) / 0.5))",
-                }}
+                cx={size / 2} cy={size / 2} r={radius}
+                stroke="hsl(var(--gold))" strokeWidth={stroke} strokeLinecap="round" fill="none"
+                strokeDasharray={circumference} strokeDashoffset={dashOffset}
+                style={{ transition: phase === "recording" ? "stroke-dashoffset 0.1s linear" : "stroke-dashoffset 0.4s ease", filter: "drop-shadow(0 0 12px hsl(var(--gold) / 0.5))" }}
               />
             </svg>
-
-            {/* Center button */}
             <button
               type="button"
-              onClick={() => {
-                if (phase === "idle") startRecording();
-                else if (phase === "recording") stopRecording();
-                else handleReRecord();
-              }}
-              aria-label={
-                phase === "idle" ? "Start recording" : phase === "recording" ? "Stop recording" : "Record again"
-              }
+              onClick={() => { if (phase === "idle") startRecording(); else if (phase === "recording") stopRecording(); else handleReRecord(); }}
+              aria-label={phase === "idle" ? "Start recording" : phase === "recording" ? "Stop recording" : "Record again"}
               className={cn(
                 "absolute left-1/2 top-1/2 flex h-44 w-44 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full transition-all active:scale-95",
-                phase === "recording"
-                  ? "bg-gradient-to-br from-kitten to-destructive shadow-gold"
-                  : "bg-gradient-gold shadow-gold hover:scale-[1.03]",
+                phase === "recording" ? "bg-gradient-to-br from-kitten to-destructive shadow-gold" : "bg-gradient-gold shadow-gold hover:scale-[1.03]",
               )}
               style={{ backgroundImage: phase !== "recording" ? "var(--gradient-gold)" : undefined }}
             >
@@ -359,105 +243,43 @@ const Record = () => {
             </button>
           </div>
 
-          {/* Countdown */}
           <div className="mt-6 text-center">
-            <p className="font-display text-3xl font-bold text-gold tabular-nums">
-              0:{String(remaining).padStart(2, "0")}
-            </p>
-            <p className="mt-1 text-xs uppercase tracking-widest text-gold-soft">
-              {phase === "recording" ? "Remaining" : `Up to ${MAX_SECONDS}s`}
-            </p>
+            <p className="font-display text-3xl font-bold text-gold tabular-nums">0:{String(remaining).padStart(2, "0")}</p>
+            <p className="mt-1 text-xs uppercase tracking-widest text-gold-soft">{phase === "recording" ? "Remaining" : `Up to ${MAX_SECONDS}s`}</p>
           </div>
 
-          {/* Waveform */}
           <div className="mt-8 flex h-24 w-full max-w-sm items-center justify-center gap-[3px] rounded-2xl bg-card/40 px-4 backdrop-blur-sm border border-border">
             {levels.map((lvl, i) => (
               <span
                 key={i}
-                className={cn(
-                  "w-1.5 rounded-full transition-all",
-                  phase === "recording" ? "bg-gold" : "bg-gold-soft/50",
-                )}
-                style={{
-                  height: `${Math.max(6, lvl * 88)}px`,
-                  boxShadow: phase === "recording" ? "0 0 6px hsl(var(--gold) / 0.5)" : undefined,
-                  transitionDuration: "80ms",
-                }}
+                className={cn("w-1.5 rounded-full transition-all", phase === "recording" ? "bg-gold" : "bg-gold-soft/50")}
+                style={{ height: `${Math.max(6, lvl * 88)}px`, boxShadow: phase === "recording" ? "0 0 6px hsl(var(--gold) / 0.5)" : undefined, transitionDuration: "80ms" }}
               />
             ))}
           </div>
 
-          {/* Done controls */}
           {phase === "done" && audioUrl && (
             <div className="mt-8 w-full space-y-3 animate-fade-up">
-              <audio
-                ref={audioElRef}
-                src={audioUrl}
-                onEnded={() => setIsPlaying(false)}
-                onPause={() => setIsPlaying(false)}
-                className="hidden"
-              />
+              <audio ref={audioElRef} src={audioUrl} onEnded={() => setIsPlaying(false)} onPause={() => setIsPlaying(false)} className="hidden" />
               <Button
-                type="button"
-                onClick={togglePlay}
-                className="h-14 w-full rounded-2xl bg-gradient-gold text-base font-bold text-primary-foreground shadow-gold transition-transform hover:scale-[1.02] active:scale-[0.98]"
-              >
-                {isPlaying ? (
-                  <>
-                    <Pause className="mr-2 h-5 w-5" /> Pause
-                  </>
-                ) : (
-                  <>
-                    <Play className="mr-2 h-5 w-5" /> Play recording
-                  </>
-                )}
-              </Button>
-              <Button
-                type="button"
-                onClick={handleGenerateStory}
-                disabled={isGenerating}
-                className="h-14 w-full rounded-2xl bg-gradient-gold text-base font-bold text-primary-foreground shadow-gold transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Weaving your story…
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="mr-2 h-5 w-5" /> Turn into a bedtime story
-                  </>
-                )}
-              </Button>
-              <Button
-                type="button"
-                onClick={handleReRecord}
+                type="button" onClick={togglePlay}
                 variant="outline"
                 className="h-14 w-full rounded-2xl border-2 border-border bg-secondary/60 text-base font-semibold text-cream hover:bg-secondary"
               >
-                <RotateCcw className="mr-2 h-5 w-5" /> Re-record
+                {isPlaying ? (<><Pause className="mr-2 h-5 w-5" /> Pause</>) : (<><Play className="mr-2 h-5 w-5" /> Play recording</>)}
               </Button>
-            </div>
-          )}
-
-          {(transcript || story) && (
-            <div className="mt-8 w-full space-y-4 animate-fade-up">
-              {transcript && (
-                <div className="rounded-2xl border border-border bg-card/50 p-5 backdrop-blur-sm">
-                  <p className="mb-2 text-xs uppercase tracking-widest text-gold-soft">What you said</p>
-                  <p className="text-sm leading-relaxed text-cream/90">{transcript}</p>
-                </div>
-              )}
-              {story && (
-                <div className="rounded-2xl border-2 border-gold/40 bg-gradient-to-br from-card/70 to-secondary/40 p-5 shadow-gold backdrop-blur-sm">
-                  <div className="mb-3 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-gold" />
-                    <p className="text-xs uppercase tracking-widest text-gold">A Kissa story for tonight</p>
-                  </div>
-                  <div className="space-y-3 font-display text-[15px] leading-relaxed text-cream whitespace-pre-wrap">
-                    {story}
-                  </div>
-                </div>
-              )}
+              <Button
+                type="button" onClick={handleCloneVoice} disabled={cloning}
+                className="h-14 w-full rounded-2xl bg-gradient-gold text-base font-bold text-primary-foreground shadow-gold transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70"
+              >
+                {cloning ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Saving your voice…</>) : (<><CheckCircle2 className="mr-2 h-5 w-5" /> Save my voice</>)}
+              </Button>
+              <Button
+                type="button" onClick={handleReRecord} variant="outline"
+                className="h-12 w-full rounded-2xl border-2 border-border bg-secondary/30 text-sm font-semibold text-cream/80 hover:bg-secondary"
+              >
+                <RotateCcw className="mr-2 h-4 w-4" /> Re-record
+              </Button>
             </div>
           )}
         </div>

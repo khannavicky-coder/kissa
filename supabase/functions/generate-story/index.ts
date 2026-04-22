@@ -8,17 +8,24 @@ const corsHeaders = {
 };
 
 const SYSTEM_PROMPT =
-  "You are Kissa, a warm magical storyteller for children aged 3–9. Generate a bedtime story that is age-appropriate, free of all violence and horror, uses simple vocabulary, and ends on a calm hopeful note. Weave in a gentle financial lesson naturally into the narrative. Keep the story between 300 and 600 words depending on the duration requested.";
+  "You are Kissa, a warm magical storyteller for children aged 3–9. Generate a bedtime story that is age-appropriate, free of all violence and horror, uses simple vocabulary, and ends on a calm hopeful note. Weave in a gentle financial literacy lesson naturally into the narrative — about saving, earning, choosing, sharing, or goal-setting. Use short paragraphs separated by blank lines. Do not add a title; just return the story body.";
+
+const lengthTargets: Record<string, string> = {
+  short: "around 200–300 words (a 2 minute read)",
+  medium: "around 400–550 words (a 4 minute read)",
+  long: "around 700–900 words (a 6 minute read)",
+};
 
 interface StoryInput {
   childName?: string;
   childAge?: number | string;
-  character?: string;
-  location?: string;
-  duration?: number | string;
-  exclusions?: string;
-  financialLesson?: string;
-  extraDetails?: string;
+  theme?: string;
+  lesson?: string;
+  characters?: string;
+  setting?: string;
+  length?: "short" | "medium" | "long";
+  // legacy fields kept for backward compatibility
+  transcript?: string;
 }
 
 const json = (status: number, body: unknown) =>
@@ -42,25 +49,28 @@ serve(async (req) => {
       return json(400, { error: "Invalid JSON body" });
     }
 
-    const {
-      childName = "the child",
-      childAge = "",
-      character = "",
-      location = "",
-      duration = "",
-      exclusions = "",
-      financialLesson = "",
-      extraDetails = "",
-    } = input ?? {};
+    const childName = (input.childName ?? "the child").toString();
+    const childAge = (input.childAge ?? "5").toString();
+    const theme = (input.theme ?? "").toString();
+    const lesson = (input.lesson ?? "saving up for something special").toString();
+    const characters = (input.characters ?? "").toString();
+    const setting = (input.setting ?? "").toString();
+    const length = (input.length ?? "medium") as "short" | "medium" | "long";
+    const transcript = (input.transcript ?? "").toString().trim();
 
-    const userMessage =
-      `Write a story for ${childName}, aged ${childAge}. ` +
-      `Main character: ${character}. ` +
-      `Location: ${location}. ` +
-      `Story duration: ${duration} minutes. ` +
-      `Do not include: ${exclusions}. ` +
-      `Financial lesson to weave in: ${financialLesson}. ` +
-      `Extra details: ${extraDetails}.`;
+    const lengthHint = lengthTargets[length] ?? lengthTargets.medium;
+
+    const userMessage = [
+      `Write a bedtime story for ${childName}, aged ${childAge}.`,
+      theme ? `Theme or adventure: ${theme}.` : "",
+      characters ? `Include these characters: ${characters}.` : "",
+      setting ? `Setting: ${setting}.` : "",
+      `Financial lesson to weave in naturally: ${lesson}.`,
+      `Length: ${lengthHint}.`,
+      transcript ? `Use this voice note from the parent for inspiration: "${transcript}".` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
 
     const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -74,12 +84,12 @@ serve(async (req) => {
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userMessage },
         ],
-        temperature: 0.8,
+        temperature: 0.85,
       }),
     });
 
-    if (aiResponse.status === 429) return json(429, { error: "OpenAI rate limit hit — try again in a moment." });
-    if (aiResponse.status === 401) return json(401, { error: "OpenAI key is invalid. Update OPENAI_API_KEY." });
+    if (aiResponse.status === 429) return json(429, { error: "OpenAI rate limit — try again." });
+    if (aiResponse.status === 401) return json(401, { error: "OpenAI key is invalid." });
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
       console.error("OpenAI error:", aiResponse.status, errText);
@@ -87,10 +97,11 @@ serve(async (req) => {
     }
 
     const data = await aiResponse.json();
-    const storyText: string = data?.choices?.[0]?.message?.content ?? "";
-    if (!storyText.trim()) return json(500, { error: "Empty story returned" });
+    const story: string = (data?.choices?.[0]?.message?.content ?? "").trim();
+    if (!story) return json(500, { error: "Empty story returned" });
 
-    return json(200, { storyText });
+    // Return both keys for backward compatibility
+    return json(200, { story, storyText: story });
   } catch (e) {
     console.error("generate-story error:", e);
     return json(500, { error: e instanceof Error ? e.message : "Unknown error" });
