@@ -16,19 +16,20 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+const getRequiredEnv = (name: string) => {
+  const value = Deno.env.get(name)?.trim();
+  if (!value) throw new Error(`${name} is not configured`);
+  return value;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
 
   try {
-    const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-    if (!ELEVENLABS_API_KEY) return json(500, { error: "ELEVENLABS_API_KEY is not configured" });
-    if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-      return json(500, { error: "Supabase service role is not configured" });
-    }
+    const ELEVENLABS_API_KEY = getRequiredEnv("ELEVENLABS_API_KEY");
+    const SUPABASE_URL = getRequiredEnv("SUPABASE_URL");
+    const SERVICE_ROLE_KEY = getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
 
     let body: { storyText?: string; voiceId?: string };
     try {
@@ -43,7 +44,6 @@ serve(async (req) => {
     if (!storyText) return json(400, { error: "Missing 'storyText'" });
     if (!voiceId) return json(400, { error: "Missing 'voiceId'" });
 
-    // Call ElevenLabs TTS
     const elResponse = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
       {
@@ -64,18 +64,31 @@ serve(async (req) => {
       },
     );
 
-    if (elResponse.status === 401) return json(401, { error: "ElevenLabs key is invalid." });
-    if (elResponse.status === 429) return json(429, { error: "ElevenLabs rate limit hit — try again." });
+    if (elResponse.status === 401) {
+      const errText = await elResponse.text();
+      console.error("ElevenLabs TTS auth error:", errText);
+      return json(401, {
+        error: "ElevenLabs rejected the API key.",
+        details: errText || "The stored ELEVENLABS_API_KEY is invalid or expired.",
+      });
+    }
+
+    if (elResponse.status === 429) {
+      return json(429, { error: "ElevenLabs rate limit hit — try again." });
+    }
+
     if (!elResponse.ok) {
       const errText = await elResponse.text();
       console.error("ElevenLabs TTS error:", elResponse.status, errText);
-      return json(502, { error: `Voice synthesis failed (${elResponse.status})` });
+      return json(502, {
+        error: `Voice synthesis failed (${elResponse.status})`,
+        details: errText,
+      });
     }
 
     const audioBuffer = await elResponse.arrayBuffer();
     if (!audioBuffer.byteLength) return json(502, { error: "Empty audio returned from ElevenLabs" });
 
-    // Upload to Supabase Storage with service role
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: { persistSession: false },
     });
