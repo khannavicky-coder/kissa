@@ -28,10 +28,8 @@ const LENGTHS: { key: "short" | "medium" | "long"; label: string; sub: string }[
 ];
 
 const schema = z.object({
-  theme: z.string().trim().min(2, "Add a quick idea").max(200),
-  lesson: z.string().trim().min(2).max(200),
+  setting: z.string().trim().min(2, "Add a quick idea").max(500),
   characters: z.string().trim().max(200).optional(),
-  setting: z.string().trim().max(200).optional(),
   length: z.enum(["short", "medium", "long"]),
 });
 
@@ -43,10 +41,8 @@ const StoryBrief = () => {
 
   const [children, setChildren] = useState<Child[]>([]);
   const [childId, setChildId] = useState<string>(childIdParam ?? "");
-  const [theme, setTheme] = useState("");
-  const [lesson, setLesson] = useState(LESSONS[0]);
-  const [characters, setCharacters] = useState("");
   const [setting, setSetting] = useState("");
+  const [characters, setCharacters] = useState("");
   const [length, setLength] = useState<"short" | "medium" | "long">("medium");
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -72,7 +68,7 @@ const StoryBrief = () => {
       toast.error("Pick a child first");
       return;
     }
-    const parsed = schema.safeParse({ theme, lesson, characters, setting, length });
+    const parsed = schema.safeParse({ setting, characters, length });
     if (!parsed.success) {
       const fe: Record<string, string> = {};
       parsed.error.issues.forEach((i) => { fe[i.path[0] as string] = i.message; });
@@ -87,11 +83,11 @@ const StoryBrief = () => {
       const draft = await createStory({
         parent_user_id: user.id,
         child_id: childId,
-        title: parsed.data.theme.slice(0, 60),
-        theme: parsed.data.theme,
-        lesson: parsed.data.lesson,
+        title: parsed.data.setting.slice(0, 60),
+        theme: null,
+        lesson: null,
         characters: parsed.data.characters || null,
-        setting: parsed.data.setting || null,
+        setting: parsed.data.setting,
         length: parsed.data.length,
         status: "generating",
       });
@@ -101,10 +97,8 @@ const StoryBrief = () => {
         body: {
           childName: child?.name,
           childAge: child?.age,
-          theme: parsed.data.theme,
-          lesson: parsed.data.lesson,
-          characters: parsed.data.characters,
           setting: parsed.data.setting,
+          characters: parsed.data.characters,
           length: parsed.data.length,
         },
       });
@@ -162,36 +156,18 @@ const StoryBrief = () => {
         )}
 
         <div className="space-y-1.5">
-          <Label htmlFor="theme" className="text-xs font-semibold uppercase tracking-wider text-gold-soft">
-            What's the adventure?
+          <Label htmlFor="setting" className="text-xs font-semibold uppercase tracking-wider text-gold-soft">
+            What all do you want in your story
           </Label>
-          <Input
-            id="theme"
-            value={theme}
-            onChange={(e) => setTheme(e.target.value)}
-            placeholder="A dragon who collects shiny coins…"
-            className="h-12 rounded-xl border-2 border-border bg-input/60 px-4"
+          <Textarea
+            id="setting"
+            value={setting}
+            onChange={(e) => setSetting(e.target.value)}
+            placeholder="A dragon who collects shiny coins, a magical forest, and a treasure chest..."
+            rows={3}
+            className="rounded-xl border-2 border-border bg-input/60 px-4 py-3"
           />
-          {errors.theme && <p className="text-xs font-medium text-destructive">{errors.theme}</p>}
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-gold-soft">Money lesson</Label>
-          <div className="flex flex-wrap gap-2">
-            {LESSONS.map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => setLesson(l)}
-                className={cn(
-                  "rounded-full px-4 py-2 text-xs font-semibold transition-all",
-                  lesson === l ? "bg-gradient-gold text-primary-foreground shadow-gold" : "bg-secondary text-cream/80 hover:bg-secondary/70",
-                )}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
+          {errors.setting && <p className="text-xs font-medium text-destructive">{errors.setting}</p>}
         </div>
 
         <div className="space-y-1.5">
@@ -204,20 +180,6 @@ const StoryBrief = () => {
             onChange={(e) => setCharacters(e.target.value)}
             placeholder="Best friend Aisha, a sleepy puppy"
             className="h-12 rounded-xl border-2 border-border bg-input/60 px-4"
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="setting" className="text-xs font-semibold uppercase tracking-wider text-gold-soft">
-            Setting <span className="ml-1 normal-case tracking-normal text-cream/50">(optional)</span>
-          </Label>
-          <Textarea
-            id="setting"
-            value={setting}
-            onChange={(e) => setSetting(e.target.value)}
-            placeholder="A floating island made of marshmallow clouds"
-            rows={2}
-            className="rounded-xl border-2 border-border bg-input/60 px-4 py-3"
           />
         </div>
 
