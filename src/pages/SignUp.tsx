@@ -12,7 +12,6 @@ import kissaHero from "@/assets/kissa-hero.png";
 
 const signUpSchema = z.object({
   parentName: z.string().trim().min(1, "Tell us your name").max(60),
-  childName: z.string().trim().min(1, "Your little one's name").max(60),
   email: z.string().trim().email("Please enter a valid email").max(255),
   password: z.string().min(8, "At least 8 characters").max(72),
 });
@@ -53,10 +52,10 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const Index = () => {
+const SignUp = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState<"email" | "google" | "apple" | null>(null);
-  const [form, setForm] = useState({ parentName: "", childName: "", email: "", password: "" });
+  const [form, setForm] = useState({ parentName: "", email: "", password: "" });
   const [errors, setErrors] = useState<Partial<Record<keyof typeof form, string>>>({});
 
   useEffect(() => {
@@ -96,7 +95,6 @@ const Index = () => {
         emailRedirectTo: `${window.location.origin}/`,
         data: {
           parent_name: result.data.parentName,
-          child_name: result.data.childName,
         },
       },
     });
@@ -105,7 +103,7 @@ const Index = () => {
       toast.error(error.message.includes("registered") ? "This email already has an account." : error.message);
       return;
     }
-    toast.success(`Welcome, ${result.data.parentName}! Kissa can't wait to meet ${result.data.childName} 🌙`);
+    toast.success(`Welcome, ${result.data.parentName}! Your Kissa account is ready 🌙`);
   };
 
   const handleOAuth = async (provider: "google" | "apple") => {
@@ -165,24 +163,14 @@ const Index = () => {
 
         {/* Form */}
         <form onSubmit={handleEmailSignUp} className="mt-6 space-y-3 animate-fade-up" style={{ animationDelay: "0.15s" }}>
-          <div className="grid grid-cols-2 gap-3">
-            <Field
-              id="parentName"
-              label="Your name"
-              placeholder="Parent"
-              value={form.parentName}
-              onChange={(v) => setForm({ ...form, parentName: v })}
-              error={errors.parentName}
-            />
-            <Field
-              id="childName"
-              label="Child's name"
-              placeholder="Little one"
-              value={form.childName}
-              onChange={(v) => setForm({ ...form, childName: v })}
-              error={errors.childName}
-            />
-          </div>
+          <Field
+            id="parentName"
+            label="Your name"
+            placeholder="Parent"
+            value={form.parentName}
+            onChange={(v) => setForm({ ...form, parentName: v })}
+            error={errors.parentName}
+          />
           <Field
             id="email"
             type="email"
@@ -284,4 +272,4 @@ const Field = ({ id, label, value, onChange, placeholder, type = "text", error }
   </div>
 );
 
-export default Index;
+export default SignUp;
