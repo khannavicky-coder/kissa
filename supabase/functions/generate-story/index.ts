@@ -24,7 +24,6 @@ interface StoryInput {
   characters?: string;
   setting?: string;
   length?: "short" | "medium" | "long";
-  // legacy fields kept for backward compatibility
   transcript?: string;
 }
 
@@ -39,8 +38,8 @@ serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
 
   try {
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) return json(500, { error: "OPENAI_API_KEY is not configured" });
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) return json(500, { error: "LOVABLE_API_KEY is not configured" });
 
     let input: StoryInput;
     try {
@@ -72,27 +71,30 @@ serve(async (req) => {
       .filter(Boolean)
       .join(" ");
 
-    const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userMessage },
         ],
-        temperature: 0.85,
       }),
     });
 
-    if (aiResponse.status === 429) return json(429, { error: "OpenAI rate limit — try again." });
-    if (aiResponse.status === 401) return json(401, { error: "OpenAI key is invalid." });
+    if (aiResponse.status === 429) {
+      return json(429, { error: "Too many requests right now — please try again in a moment." });
+    }
+    if (aiResponse.status === 402) {
+      return json(402, { error: "AI credits exhausted. Add credits in Settings → Workspace → Usage." });
+    }
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
-      console.error("OpenAI error:", aiResponse.status, errText);
+      console.error("AI gateway error:", aiResponse.status, errText);
       return json(502, { error: `Story generation failed (${aiResponse.status})` });
     }
 
@@ -100,7 +102,6 @@ serve(async (req) => {
     const story: string = (data?.choices?.[0]?.message?.content ?? "").trim();
     if (!story) return json(500, { error: "Empty story returned" });
 
-    // Return both keys for backward compatibility
     return json(200, { story, storyText: story });
   } catch (e) {
     console.error("generate-story error:", e);
