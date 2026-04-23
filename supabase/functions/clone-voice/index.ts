@@ -113,6 +113,32 @@ serve(async (req) => {
     if (!elResp.ok) {
       const errText = await elResp.text();
       console.error("ElevenLabs clone error:", elResp.status, errText);
+
+      // Detect "paid plan required" — fall back to a default shared voice so the app
+      // keeps working without an ElevenLabs paid subscription.
+      const isPaidPlanRequired =
+        errText.includes("paid_plan_required") ||
+        errText.includes("can_not_use_instant_voice_cloning");
+
+      if (isPaidPlanRequired) {
+        const FALLBACK_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"; // Sarah — warm, friendly default
+        const { error: updErr } = await admin
+          .from("voice_profiles")
+          .update({
+            elevenlabs_voice_id: FALLBACK_VOICE_ID,
+            status: "ready",
+            error_message: "Using shared default voice (ElevenLabs plan does not allow voice cloning).",
+          })
+          .eq("parent_user_id", user.id);
+        if (updErr) console.error("voice_profiles fallback update error:", updErr);
+        return json(200, {
+          voiceId: FALLBACK_VOICE_ID,
+          status: "ready",
+          fallback: true,
+          message: "Voice cloning requires an ElevenLabs paid plan — using a shared default voice for now.",
+        });
+      }
+
       await admin
         .from("voice_profiles")
         .update({ status: "failed", error_message: `ElevenLabs ${elResp.status}` })
