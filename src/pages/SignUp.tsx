@@ -52,7 +52,7 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const Index = () => {
+const SignUp = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState<"email" | "google" | "apple" | null>(null);
   const [form, setForm] = useState({ parentName: "", email: "", password: "" });
@@ -272,4 +272,4 @@ const Field = ({ id, label, value, onChange, placeholder, type = "text", error }
   </div>
 );
 
-export default Index;
+export default SignUp;
