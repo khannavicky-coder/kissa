@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute, PublicOnlyRoute } from "@/components/ProtectedRoute";
-import Index from "./pages/Index";
+import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Children from "./pages/Children";
@@ -28,7 +28,8 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<PublicOnlyRoute><Index /></PublicOnlyRoute>} />
+<Route path="/sign-up" element={<PublicOnlyRoute><SignUp /></PublicOnlyRoute>} />
+            <Route path="/" element={<PublicOnlyRoute><SignUp /></PublicOnlyRoute>} />
             <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
 
             <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
