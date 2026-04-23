@@ -161,7 +161,13 @@ const Record = () => {
       if (error) throw new Error(error.message);
       if (!data?.voiceId) throw new Error("No voice id returned");
 
-      toast.success("Your voice is ready ✨");
+      if (data.fallback) {
+        toast.success("Using a shared default voice for now ✨", {
+          description: "Voice cloning needs an ElevenLabs paid plan. Stories will still sound great!",
+        });
+      } else {
+        toast.success("Your voice is ready ✨");
+      }
       navigate("/home");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Voice cloning failed");
