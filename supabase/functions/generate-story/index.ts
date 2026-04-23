@@ -19,10 +19,8 @@ const lengthTargets: Record<string, string> = {
 interface StoryInput {
   childName?: string;
   childAge?: number | string;
-  theme?: string;
-  lesson?: string;
-  characters?: string;
   setting?: string;
+  characters?: string;
   length?: "short" | "medium" | "long";
   transcript?: string;
 }
@@ -50,10 +48,8 @@ serve(async (req) => {
 
     const childName = (input.childName ?? "the child").toString();
     const childAge = (input.childAge ?? "5").toString();
-    const theme = (input.theme ?? "").toString();
-    const lesson = (input.lesson ?? "saving up for something special").toString();
-    const characters = (input.characters ?? "").toString();
     const setting = (input.setting ?? "").toString();
+    const characters = (input.characters ?? "").toString();
     const length = (input.length ?? "medium") as "short" | "medium" | "long";
     const transcript = (input.transcript ?? "").toString().trim();
 
@@ -61,10 +57,8 @@ serve(async (req) => {
 
     const userMessage = [
       `Write a bedtime story for ${childName}, aged ${childAge}.`,
-      theme ? `Theme or adventure: ${theme}.` : "",
+      setting ? `Story elements: ${setting}.` : "",
       characters ? `Include these characters: ${characters}.` : "",
-      setting ? `Setting: ${setting}.` : "",
-      `Financial lesson to weave in naturally: ${lesson}.`,
       `Length: ${lengthHint}.`,
       transcript ? `Use this voice note from the parent for inspiration: "${transcript}".` : "",
     ]
