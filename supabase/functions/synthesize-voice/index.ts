@@ -39,12 +39,39 @@ serve(async (req) => {
     }
 
     const storyText = (body?.storyText ?? "").toString().trim();
-    // BETA: ignore client-provided voiceId and use a stock ElevenLabs voice
-    // (Rachel — warm storytelling, available on free tier).
-    // Re-enable per-user cloned voices when we upgrade to ElevenLabs Starter.
-    const voiceId = "21m00Tcm4TlvDq8ikWAM";
-
     if (!storyText) return json(400, { error: "Missing 'storyText'" });
+
+    // BETA: ElevenLabs free tier does NOT allow library/premade voices via API.
+    // Fetch the account's own voices and use the first available one.
+    // Re-enable per-user cloned voices when we upgrade to ElevenLabs Starter.
+    let voiceId = (body?.voiceId ?? "").toString().trim();
+    if (!voiceId) {
+      const voicesResp = await fetch("https://api.elevenlabs.io/v2/voices?page_size=10", {
+        headers: { "xi-api-key": ELEVENLABS_API_KEY, Accept: "application/json" },
+      });
+      if (!voicesResp.ok) {
+        const errText = await voicesResp.text();
+        console.error("ElevenLabs list voices error:", voicesResp.status, errText);
+        return json(502, {
+          error: `Could not list ElevenLabs voices (${voicesResp.status})`,
+          details: errText,
+        });
+      }
+      const voicesData = await voicesResp.json();
+      const allVoices = Array.isArray(voicesData?.voices) ? voicesData.voices : [];
+      // Free tier only allows personal voices (cloned / generated / professional you own).
+      // Library / premade voices return 402 payment_required via the API.
+      const personalVoice = allVoices.find((v: any) =>
+        ["cloned", "generated", "professional"].includes(v?.category),
+      );
+      voiceId = personalVoice?.voice_id ?? "";
+      if (!voiceId) {
+        return json(502, {
+          error: "No personal voices available on this ElevenLabs account.",
+          details: "ElevenLabs free tier requires a voice you've added to 'My Voices'. Add or clone a voice in your ElevenLabs dashboard, or upgrade to a paid plan to use library voices.",
+        });
+      }
+    }
 
     const elResponse = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
