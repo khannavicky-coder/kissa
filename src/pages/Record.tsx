@@ -1,17 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Loader2, Mic, Pause, Play, RotateCcw, Sparkles, Square } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
 import { Stars } from "@/components/AppShell";
-import { useAuth } from "@/hooks/useAuth";
-import { getProfile, getVoiceProfile, type VoiceProfile } from "@/lib/supabaseService";
 
-const MAX_SECONDS = 30;
-const BAR_COUNT = 32;
-type Phase = "idle" | "recording" | "done";
 
 const Record = () => {
   const navigate = useNavigate();
