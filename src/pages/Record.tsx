@@ -200,95 +200,30 @@ const Record = () => {
           </div>
         </header>
 
-        <section className="mt-6 text-center animate-fade-up" style={{ animationDelay: "0.05s" }}>
-          <h1 className="font-display text-4xl font-black leading-[1.05] text-gold sm:text-5xl">
-            {phase === "done" ? "Sounds lovely!" : "Record your voice"}
+        <section className="mt-10 flex flex-1 flex-col items-center justify-center text-center animate-fade-up" style={{ animationDelay: "0.05s" }}>
+          <div className="relative mb-8 flex h-32 w-32 items-center justify-center rounded-full bg-gradient-gold shadow-gold">
+            <Sparkles className="h-14 w-14 text-primary-foreground" strokeWidth={2.2} />
+          </div>
+
+          <span className="mb-4 inline-flex items-center gap-1 rounded-full bg-card/60 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-gold">
+            Beta
+          </span>
+
+          <h1 className="font-display text-3xl font-black leading-[1.1] text-gold sm:text-4xl">
+            Voice personalisation coming soon
           </h1>
-          <p className="mx-auto mt-3 max-w-xs text-sm text-cream/75">
-            {phase === "idle" && "Read this aloud for 30 seconds: \"Once upon a time, in a cozy little garden, lived a tiny star who dreamed of bedtime stories…\""}
-            {phase === "recording" && "Speak softly — Kissa is listening."}
-            {phase === "done" && "Have a listen, then save your voice forever."}
+          <p className="mx-auto mt-4 max-w-sm text-base text-cream/80">
+            Your stories will be narrated in a warm storytelling voice during beta. We'll re-enable custom voice cloning very soon ✨
           </p>
-          {voiceProfile?.status === "ready" && phase === "idle" && (
-            <p className="mt-3 inline-flex items-center gap-1 rounded-full bg-card/60 px-3 py-1 text-xs text-gold">
-              <CheckCircle2 className="h-3 w-3" /> Voice already saved — record again to replace
-            </p>
-          )}
+
+          <Button
+            type="button"
+            onClick={() => navigate("/home")}
+            className="mt-10 h-14 w-full max-w-sm rounded-2xl bg-gradient-gold text-base font-bold text-primary-foreground shadow-gold transition-transform hover:scale-[1.02] active:scale-[0.98]"
+          >
+            Back to home
+          </Button>
         </section>
-
-        <div className="mt-10 flex flex-col items-center animate-fade-up" style={{ animationDelay: "0.1s" }}>
-          <div className="relative" style={{ width: size, height: size }}>
-            {phase === "recording" && (
-              <>
-                <div className="absolute inset-0 rounded-full bg-gold/15 animate-ping" />
-                <div className="absolute inset-4 rounded-full bg-gold/10 animate-ping" style={{ animationDelay: "0.4s" }} />
-              </>
-            )}
-            <svg width={size} height={size} className="absolute inset-0 -rotate-90">
-              <circle cx={size / 2} cy={size / 2} r={radius} stroke="hsl(var(--indigo-soft))" strokeWidth={stroke} fill="none" />
-              <circle
-                cx={size / 2} cy={size / 2} r={radius}
-                stroke="hsl(var(--gold))" strokeWidth={stroke} strokeLinecap="round" fill="none"
-                strokeDasharray={circumference} strokeDashoffset={dashOffset}
-                style={{ transition: phase === "recording" ? "stroke-dashoffset 0.1s linear" : "stroke-dashoffset 0.4s ease", filter: "drop-shadow(0 0 12px hsl(var(--gold) / 0.5))" }}
-              />
-            </svg>
-            <button
-              type="button"
-              onClick={() => { if (phase === "idle") startRecording(); else if (phase === "recording") stopRecording(); else handleReRecord(); }}
-              aria-label={phase === "idle" ? "Start recording" : phase === "recording" ? "Stop recording" : "Record again"}
-              className={cn(
-                "absolute left-1/2 top-1/2 flex h-44 w-44 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full transition-all active:scale-95",
-                phase === "recording" ? "bg-gradient-to-br from-kitten to-destructive shadow-gold" : "bg-gradient-gold shadow-gold hover:scale-[1.03]",
-              )}
-              style={{ backgroundImage: phase !== "recording" ? "var(--gradient-gold)" : undefined }}
-            >
-              {phase === "idle" && <Mic className="h-16 w-16 text-primary-foreground" strokeWidth={2.2} />}
-              {phase === "recording" && <Square className="h-12 w-12 text-primary-foreground" fill="currentColor" />}
-              {phase === "done" && <RotateCcw className="h-14 w-14 text-primary-foreground" strokeWidth={2.2} />}
-            </button>
-          </div>
-
-          <div className="mt-6 text-center">
-            <p className="font-display text-3xl font-bold text-gold tabular-nums">0:{String(remaining).padStart(2, "0")}</p>
-            <p className="mt-1 text-xs uppercase tracking-widest text-gold-soft">{phase === "recording" ? "Remaining" : `Up to ${MAX_SECONDS}s`}</p>
-          </div>
-
-          <div className="mt-8 flex h-24 w-full max-w-sm items-center justify-center gap-[3px] rounded-2xl bg-card/40 px-4 backdrop-blur-sm border border-border">
-            {levels.map((lvl, i) => (
-              <span
-                key={i}
-                className={cn("w-1.5 rounded-full transition-all", phase === "recording" ? "bg-gold" : "bg-gold-soft/50")}
-                style={{ height: `${Math.max(6, lvl * 88)}px`, boxShadow: phase === "recording" ? "0 0 6px hsl(var(--gold) / 0.5)" : undefined, transitionDuration: "80ms" }}
-              />
-            ))}
-          </div>
-
-          {phase === "done" && audioUrl && (
-            <div className="mt-8 w-full space-y-3 animate-fade-up">
-              <audio ref={audioElRef} src={audioUrl} onEnded={() => setIsPlaying(false)} onPause={() => setIsPlaying(false)} className="hidden" />
-              <Button
-                type="button" onClick={togglePlay}
-                variant="outline"
-                className="h-14 w-full rounded-2xl border-2 border-border bg-secondary/60 text-base font-semibold text-cream hover:bg-secondary"
-              >
-                {isPlaying ? (<><Pause className="mr-2 h-5 w-5" /> Pause</>) : (<><Play className="mr-2 h-5 w-5" /> Play recording</>)}
-              </Button>
-              <Button
-                type="button" onClick={handleCloneVoice} disabled={cloning}
-                className="h-14 w-full rounded-2xl bg-gradient-gold text-base font-bold text-primary-foreground shadow-gold transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70"
-              >
-                {cloning ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Saving your voice…</>) : (<><CheckCircle2 className="mr-2 h-5 w-5" /> Save my voice</>)}
-              </Button>
-              <Button
-                type="button" onClick={handleReRecord} variant="outline"
-                className="h-12 w-full rounded-2xl border-2 border-border bg-secondary/30 text-sm font-semibold text-cream/80 hover:bg-secondary"
-              >
-                <RotateCcw className="mr-2 h-4 w-4" /> Re-record
-              </Button>
-            </div>
-          )}
-        </div>
       </div>
     </main>
   );
