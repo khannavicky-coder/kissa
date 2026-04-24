@@ -39,10 +39,12 @@ serve(async (req) => {
     }
 
     const storyText = (body?.storyText ?? "").toString().trim();
-    const voiceId = (body?.voiceId ?? "").toString().trim();
+    // BETA: ignore client-provided voiceId and use a stock ElevenLabs voice
+    // (Rachel — warm storytelling, available on free tier).
+    // Re-enable per-user cloned voices when we upgrade to ElevenLabs Starter.
+    const voiceId = "21m00Tcm4TlvDq8ikWAM";
 
     if (!storyText) return json(400, { error: "Missing 'storyText'" });
-    if (!voiceId) return json(400, { error: "Missing 'voiceId'" });
 
     const elResponse = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
