@@ -58,12 +58,17 @@ serve(async (req) => {
         });
       }
       const voicesData = await voicesResp.json();
-      const firstVoice = Array.isArray(voicesData?.voices) ? voicesData.voices[0] : null;
-      voiceId = firstVoice?.voice_id ?? "";
+      const allVoices = Array.isArray(voicesData?.voices) ? voicesData.voices : [];
+      // Free tier only allows personal voices (cloned / generated / professional you own).
+      // Library / premade voices return 402 payment_required via the API.
+      const personalVoice = allVoices.find((v: any) =>
+        ["cloned", "generated", "professional"].includes(v?.category),
+      );
+      voiceId = personalVoice?.voice_id ?? "";
       if (!voiceId) {
         return json(502, {
-          error: "No voices available on this ElevenLabs account.",
-          details: "Add a voice in your ElevenLabs dashboard, or upgrade to a paid plan to use library voices.",
+          error: "No personal voices available on this ElevenLabs account.",
+          details: "ElevenLabs free tier requires a voice you've added to 'My Voices'. Add or clone a voice in your ElevenLabs dashboard, or upgrade to a paid plan to use library voices.",
         });
       }
     }
