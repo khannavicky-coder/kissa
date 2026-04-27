@@ -1,22 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Convert a Blob into a base64 string (without the `data:<mime>;base64,` prefix).
- * Useful for sending audio payloads to edge functions as JSON.
- */
-export const blobToBase64 = (blob: Blob): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      const idx = result.indexOf(",");
-      resolve(idx >= 0 ? result.slice(idx + 1) : result);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-
-/**
  * Pick a MediaRecorder mimeType supported by the current browser.
  * Falls back to undefined (browser default) if neither preferred type is supported.
  */
@@ -48,17 +32,29 @@ export interface TranscribeResult {
 }
 
 /**
- * Send recorded audio to the `transcribe-recording` edge function and
- * return the transcribed text.
+ * Send recorded audio to the `transcribe-recording` edge function as
+ * multipart/form-data (required by Whisper via OpenAI API).
  */
 export async function transcribeRecording(audioBlob: Blob): Promise<TranscribeResult> {
-  const base64 = await blobToBase64(audioBlob);
+  // Derive a sensible filename from the MIME type
+  const ext = audioBlob.type.includes("mp4")
+    ? "mp4"
+    : audioBlob.type.includes("mpeg")
+    ? "mp3"
+    : "webm";
+  const file = new File([audioBlob], `recording.${ext}`, { type: audioBlob.type || "audio/webm" });
+
+  const formData = new FormData();
+  formData.append("audio", file);
+
   const { data, error } = await supabase.functions.invoke("transcribe-recording", {
-    body: { audio: base64, mimeType: audioBlob.type || "audio/webm" },
+    body: formData,
   });
+
   if (error) throw new Error(error.message || "Transcription failed");
 
-  const text = (data?.text ?? "").toString().trim();
+  // Edge function returns { transcript } (not { text })
+  const text = (data?.transcript ?? data?.text ?? "").toString().trim();
   if (!text) {
     throw new Error("We couldn't hear any words — try recording again.");
   }
@@ -72,28 +68,21 @@ export interface SynthesizeVoiceParams {
 
 /**
  * Synthesize speech via the `synthesize-voice` edge function (ElevenLabs).
- * Returns a playable object URL for an <audio> element.
- *
- * NOTE: requires a `synthesize-voice` edge function that returns
- * `{ audio: <base64>, mimeType: <string> }`.
+ * Returns a playable public URL for an <audio> element.
  */
 export async function synthesizeVoice({
   text,
   voiceId,
-}: SynthesizeVoiceParams): Promise<{ url: string; blob: Blob }> {
+}: SynthesizeVoiceParams): Promise<{ url: string }> {
   const { data, error } = await supabase.functions.invoke("synthesize-voice", {
-    body: { text, voiceId },
+    body: { storyText: text, voiceId },
   });
+
   if (error) throw new Error(error.message || "Voice synthesis failed");
 
-  const audioB64 = (data?.audio ?? "").toString();
-  const mimeType = (data?.mimeType ?? "audio/mpeg").toString();
-  if (!audioB64) throw new Error("No audio returned from voice synthesis.");
+  const audioUrl = (data?.audioUrl ?? "").toString();
+  if (!audioUrl) throw new Error("No audio URL returned from voice synthesis.");
 
-  const byteString = atob(audioB64);
-  const bytes = new Uint8Array(byteString.length);
-  for (let i = 0; i < byteString.length; i++) bytes[i] = byteString.charCodeAt(i);
-  const blob = new Blob([bytes], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  return { url, blob };
+  return { url: audioUrl };
 }
+
