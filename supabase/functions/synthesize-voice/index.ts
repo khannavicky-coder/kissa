@@ -10,10 +10,12 @@ const corsHeaders = {
 
 const BUCKET = "story-audio";
 
-// George — Warm, Captivating Storyteller (ElevenLabs premade)
-// Used as beta fallback until user upgrades to Starter and clones their own voice.
-// NOTE: ElevenLabs now allows premade voices on free tier via API (confirmed April 2026).
-const BETA_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb";
+// ── Voice configuration ────────────────────────────────────────────────────────
+// PRIMARY: ElevenLabs — George, Warm Captivating Storyteller
+// FALLBACK: OpenAI TTS — onyx, deep warm voice (same OpenAI key as Whisper)
+const EL_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"; // George
+const OPENAI_TTS_VOICE = "onyx";              // Deep, warm, storyteller tone
+const OPENAI_TTS_MODEL = "tts-1";            // Standard — fast & cost-effective
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -21,18 +23,93 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const getRequiredEnv = (name: string) => {
+const getRequiredEnv = (name: string): string => {
   const value = Deno.env.get(name)?.trim();
   if (!value) throw new Error(`${name} is not configured`);
   return value;
 };
 
+// ── ElevenLabs TTS ─────────────────────────────────────────────────────────────
+async function synthesizeWithElevenLabs(
+  text: string,
+  voiceId: string,
+  apiKey: string,
+): Promise<ArrayBuffer | null> {
+  const res = await fetch(
+    `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
+    {
+      method: "POST",
+      headers: {
+        "xi-api-key": apiKey,
+        "Content-Type": "application/json",
+        Accept: "audio/mpeg",
+      },
+      body: JSON.stringify({
+        text,
+        model_id: "eleven_multilingual_v2",
+        voice_settings: { stability: 0.55, similarity_boost: 0.85 },
+      }),
+    },
+  );
+
+  if (res.status === 429 || res.status === 402) {
+    // Quota exhausted — signal caller to use fallback
+    console.warn(`ElevenLabs quota hit (${res.status}). Falling back to OpenAI TTS.`);
+    return null;
+  }
+
+  if (res.status === 401) throw new Error("ElevenLabs API key invalid or expired.");
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`ElevenLabs error (${res.status}): ${errText}`);
+  }
+
+  const buffer = await res.arrayBuffer();
+  if (!buffer.byteLength) throw new Error("ElevenLabs returned empty audio.");
+  return buffer;
+}
+
+// ── OpenAI TTS fallback ────────────────────────────────────────────────────────
+async function synthesizeWithOpenAI(
+  text: string,
+  apiKey: string,
+): Promise<ArrayBuffer> {
+  console.log("Using OpenAI TTS fallback (onyx voice).");
+  const res = await fetch("https://api.openai.com/v1/audio/speech", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      Accept: "audio/mpeg",
+    },
+    body: JSON.stringify({
+      model: OPENAI_TTS_MODEL,
+      voice: OPENAI_TTS_VOICE,
+      input: text,
+      response_format: "mp3",
+    }),
+  });
+
+  if (res.status === 401) throw new Error("OpenAI API key invalid or expired.");
+  if (res.status === 429) throw new Error("OpenAI rate limit hit — try again in a moment.");
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`OpenAI TTS error (${res.status}): ${errText}`);
+  }
+
+  const buffer = await res.arrayBuffer();
+  if (!buffer.byteLength) throw new Error("OpenAI TTS returned empty audio.");
+  return buffer;
+}
+
+// ── Main handler ───────────────────────────────────────────────────────────────
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
 
   try {
     const ELEVENLABS_API_KEY = getRequiredEnv("ELEVENLABS_API_KEY");
+    const OPENAI_API_KEY = getRequiredEnv("OPENAI_API_KEY");
     const SUPABASE_URL = getRequiredEnv("SUPABASE_URL");
     const SERVICE_ROLE_KEY = getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -44,73 +121,29 @@ serve(async (req) => {
     }
 
     const storyText = (body?.storyText ?? "").toString().trim();
-    if (!storyText) return json(400, { error: "Missing 'storyText'" });
+    if (!storyText) return json(400, { error: "Missing storyText" });
 
-    // Use provided voiceId, or fall back to George (warm storyteller beta voice).
-    // When user upgrades to ElevenLabs Starter and clones their voice,
-    // pass the cloned voiceId from the client.
-    const voiceId = (body?.voiceId ?? "").toString().trim() || BETA_VOICE_ID;
+    // Use caller-provided voiceId (cloned voice) or fall back to George
+    const voiceId = (body?.voiceId ?? "").toString().trim() || EL_VOICE_ID;
 
-    const elResponse = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
-      {
-        method: "POST",
-        headers: {
-          "xi-api-key": ELEVENLABS_API_KEY,
-          "Content-Type": "application/json",
-          Accept: "audio/mpeg",
-        },
-        body: JSON.stringify({
-          text: storyText,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.55,
-            similarity_boost: 0.85,
-          },
-        }),
-      },
-    );
+    // ── Step 1: Try ElevenLabs ─────────────────────────────────────────────────
+    let audioBuffer: ArrayBuffer | null = null;
+    let provider = "elevenlabs";
 
-    if (elResponse.status === 401) {
-      const errText = await elResponse.text();
-      console.error("ElevenLabs TTS auth error:", errText);
-      return json(401, {
-        error: "ElevenLabs rejected the API key.",
-        details: errText || "The stored ELEVENLABS_API_KEY is invalid or expired.",
-      });
+    audioBuffer = await synthesizeWithElevenLabs(storyText, voiceId, ELEVENLABS_API_KEY);
+
+    // ── Step 2: Auto-fallback to OpenAI TTS if quota hit ──────────────────────
+    if (audioBuffer === null) {
+      provider = "openai";
+      audioBuffer = await synthesizeWithOpenAI(storyText, OPENAI_API_KEY);
     }
 
-    if (elResponse.status === 429) {
-      return json(429, {
-        error: "quota_exceeded",
-        message: "ElevenLabs voice credits exhausted. Story text is still available below.",
-      });
-    }
-
-    if (elResponse.status === 402) {
-      return json(402, {
-        error: "quota_exceeded",
-        message: "ElevenLabs quota reached. Story text is still available below.",
-      });
-    }
-
-    if (!elResponse.ok) {
-      const errText = await elResponse.text();
-      console.error("ElevenLabs TTS error:", elResponse.status, errText);
-      return json(502, {
-        error: `Voice synthesis failed (${elResponse.status})`,
-        details: errText,
-      });
-    }
-
-    const audioBuffer = await elResponse.arrayBuffer();
-    if (!audioBuffer.byteLength) return json(502, { error: "Empty audio returned from ElevenLabs" });
-
+    // ── Step 3: Upload to Supabase Storage ────────────────────────────────────
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: { persistSession: false },
     });
 
-    const filename = `${Date.now()}-${voiceId}.mp3`;
+    const filename = `${Date.now()}-${provider}-${voiceId}.mp3`;
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
@@ -128,7 +161,9 @@ serve(async (req) => {
     const audioUrl = publicUrlData?.publicUrl;
     if (!audioUrl) return json(500, { error: "Failed to resolve public URL" });
 
-    return json(200, { audioUrl, voiceId });
+    // Return audioUrl + which provider was used (useful for logging/debugging)
+    return json(200, { audioUrl, provider, voiceId });
+
   } catch (e) {
     console.error("synthesize-voice error:", e);
     return json(500, { error: e instanceof Error ? e.message : "Unknown error" });
