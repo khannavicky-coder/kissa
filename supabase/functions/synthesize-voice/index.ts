@@ -10,6 +10,11 @@ const corsHeaders = {
 
 const BUCKET = "story-audio";
 
+// George — Warm, Captivating Storyteller (ElevenLabs premade)
+// Used as beta fallback until user upgrades to Starter and clones their own voice.
+// NOTE: ElevenLabs now allows premade voices on free tier via API (confirmed April 2026).
+const BETA_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb";
+
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
@@ -41,37 +46,10 @@ serve(async (req) => {
     const storyText = (body?.storyText ?? "").toString().trim();
     if (!storyText) return json(400, { error: "Missing 'storyText'" });
 
-    // BETA: ElevenLabs free tier does NOT allow library/premade voices via API.
-    // Fetch the account's own voices and use the first available one.
-    // Re-enable per-user cloned voices when we upgrade to ElevenLabs Starter.
-    let voiceId = (body?.voiceId ?? "").toString().trim();
-    if (!voiceId) {
-      const voicesResp = await fetch("https://api.elevenlabs.io/v2/voices?page_size=10", {
-        headers: { "xi-api-key": ELEVENLABS_API_KEY, Accept: "application/json" },
-      });
-      if (!voicesResp.ok) {
-        const errText = await voicesResp.text();
-        console.error("ElevenLabs list voices error:", voicesResp.status, errText);
-        return json(502, {
-          error: `Could not list ElevenLabs voices (${voicesResp.status})`,
-          details: errText,
-        });
-      }
-      const voicesData = await voicesResp.json();
-      const allVoices = Array.isArray(voicesData?.voices) ? voicesData.voices : [];
-      // Free tier only allows personal voices (cloned / generated / professional you own).
-      // Library / premade voices return 402 payment_required via the API.
-      const personalVoice = allVoices.find((v: any) =>
-        ["cloned", "generated", "professional"].includes(v?.category),
-      );
-      voiceId = personalVoice?.voice_id ?? "";
-      if (!voiceId) {
-        return json(502, {
-          error: "No personal voices available on this ElevenLabs account.",
-          details: "ElevenLabs free tier requires a voice you've added to 'My Voices'. Add or clone a voice in your ElevenLabs dashboard, or upgrade to a paid plan to use library voices.",
-        });
-      }
-    }
+    // Use provided voiceId, or fall back to George (warm storyteller beta voice).
+    // When user upgrades to ElevenLabs Starter and clones their voice,
+    // pass the cloned voiceId from the client.
+    const voiceId = (body?.voiceId ?? "").toString().trim() || BETA_VOICE_ID;
 
     const elResponse = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
@@ -86,7 +64,7 @@ serve(async (req) => {
           text: storyText,
           model_id: "eleven_multilingual_v2",
           voice_settings: {
-            stability: 0.5,
+            stability: 0.55,
             similarity_boost: 0.85,
           },
         }),
@@ -103,7 +81,17 @@ serve(async (req) => {
     }
 
     if (elResponse.status === 429) {
-      return json(429, { error: "ElevenLabs rate limit hit — try again." });
+      return json(429, {
+        error: "quota_exceeded",
+        message: "ElevenLabs voice credits exhausted. Story text is still available below.",
+      });
+    }
+
+    if (elResponse.status === 402) {
+      return json(402, {
+        error: "quota_exceeded",
+        message: "ElevenLabs quota reached. Story text is still available below.",
+      });
     }
 
     if (!elResponse.ok) {
@@ -140,9 +128,10 @@ serve(async (req) => {
     const audioUrl = publicUrlData?.publicUrl;
     if (!audioUrl) return json(500, { error: "Failed to resolve public URL" });
 
-    return json(200, { audioUrl });
+    return json(200, { audioUrl, voiceId });
   } catch (e) {
     console.error("synthesize-voice error:", e);
     return json(500, { error: e instanceof Error ? e.message : "Unknown error" });
   }
 });
+
