@@ -35,12 +35,12 @@ serve(async (req) => {
     }
 
     const audioField = formData.get("audio");
-    if (!(audioField instanceof File) && !(audioField instanceof Blob)) {
+    if (!(audioField instanceof File)) {
       return json(400, { error: "Missing 'audio' file field" });
     }
 
     const filename =
-      audioField instanceof File && audioField.name
+      audioField.name
         ? audioField.name
         : `recording.${(audioField.type || "audio/webm").includes("mp4") ? "mp4" : (audioField.type || "").includes("mpeg") ? "mp3" : "webm"}`;
 
