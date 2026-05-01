@@ -66,12 +66,12 @@ async function synthesizeWithElevenLabs(
 }
 
 // ── OpenAI TTS fallback ────────────────────────────────────────────────────────
-async function synthesizeWithOpenAI(
+async function callOpenAITTS(
   text: string,
   apiKey: string,
-): Promise<ArrayBuffer> {
-  console.log("Using OpenAI TTS fallback (onyx voice).");
-  const res = await fetch("https://api.openai.com/v1/audio/speech", {
+  model: string,
+): Promise<Response> {
+  return fetch("https://api.openai.com/v1/audio/speech", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -79,47 +79,45 @@ async function synthesizeWithOpenAI(
       Accept: "audio/mpeg",
     },
     body: JSON.stringify({
-      model: OPENAI_TTS_MODEL,
+      model,
       voice: OPENAI_TTS_VOICE,
       input: text,
       response_format: "mp3",
     }),
   });
+}
 
-  if (res.status === 401) throw new Error("OpenAI API key invalid or expired.");
-  if (res.status === 429) {
-    // Brief backoff and one retry — handles transient bursts.
-    console.warn("OpenAI TTS 429 — retrying after 1.5s backoff…");
-    await new Promise((r) => setTimeout(r, 1500));
-    const retry = await fetch("https://api.openai.com/v1/audio/speech", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        Accept: "audio/mpeg",
-      },
-      body: JSON.stringify({
-        model: OPENAI_TTS_MODEL,
-        voice: OPENAI_TTS_VOICE,
-        input: text,
-        response_format: "mp3",
-      }),
-    });
-    if (!retry.ok) {
-      throw new Error("Voice service is busy right now — please try again in a few seconds.");
+async function synthesizeWithOpenAI(
+  text: string,
+  apiKey: string,
+): Promise<ArrayBuffer> {
+  console.log("Using OpenAI TTS fallback (onyx voice).");
+  const models = [OPENAI_TTS_MODEL, "gpt-4o-mini-tts"];
+  const delays = [0, 1000, 2500, 5000];
+  let lastErr = "";
+
+  for (const model of models) {
+    for (let i = 0; i < delays.length; i++) {
+      if (delays[i] > 0) {
+        console.warn(`OpenAI TTS retry ${i} for model=${model} after ${delays[i]}ms…`);
+        await new Promise((r) => setTimeout(r, delays[i]));
+      }
+      const res = await callOpenAITTS(text, apiKey, model);
+      if (res.ok) {
+        const buf = await res.arrayBuffer();
+        if (!buf.byteLength) throw new Error("OpenAI TTS returned empty audio.");
+        return buf;
+      }
+      if (res.status === 401) throw new Error("OpenAI API key invalid or expired.");
+      lastErr = await res.text().catch(() => `${res.status}`);
+      console.warn(`OpenAI TTS ${res.status} (model=${model}): ${lastErr.slice(0, 200)}`);
+      // Only retry on 429/5xx; otherwise break to try next model
+      if (res.status !== 429 && res.status < 500) break;
     }
-    const buf = await retry.arrayBuffer();
-    if (!buf.byteLength) throw new Error("OpenAI TTS returned empty audio.");
-    return buf;
   }
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`OpenAI TTS error (${res.status}): ${errText}`);
-  }
-
-  const buffer = await res.arrayBuffer();
-  if (!buffer.byteLength) throw new Error("OpenAI TTS returned empty audio.");
-  return buffer;
+  throw new Error(
+    "Voice service is temporarily over quota. Please add billing/credits to your OpenAI account or try again later.",
+  );
 }
 
 // ── Main handler ───────────────────────────────────────────────────────────────
