@@ -255,32 +255,15 @@ const StoryPreview = () => {
         className="mt-5 min-h-[320px] rounded-2xl border-2 border-border bg-card/60 p-5 text-[15px] leading-relaxed text-cream backdrop-blur-sm focus-visible:border-ring animate-fade-up font-display"
       />
 
-      {/* Voice picker */}
+      {/* Narrator voice (locked to George with OpenAI fallback) */}
       <section className="mt-5 animate-fade-up" style={{ animationDelay: "0.1s" }}>
         <label className="text-xs uppercase tracking-widest text-gold-soft">Narrator voice</label>
-        <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-          <SelectTrigger className="mt-2 h-12 rounded-2xl border-2 border-border bg-card/60 text-cream">
-            <SelectValue placeholder="Choose a voice" />
-          </SelectTrigger>
-          <SelectContent className="bg-popover">
-            {myVoiceReady && (
-              <SelectItem value={MY_VOICE_VALUE}>
-                <span className="font-semibold">My cloned voice</span>
-                <span className="ml-2 text-xs text-muted-foreground">Your recording</span>
-              </SelectItem>
-            )}
-            {PRESET_VOICES.map((v) => (
-              <SelectItem key={v.id} value={v.id}>
-                <span className="font-semibold">{v.label}</span>
-                <span className="ml-2 text-xs text-muted-foreground">{v.description}</span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="mt-2 flex h-12 items-center rounded-2xl border-2 border-border bg-card/60 px-4 text-cream">
+          <span className="font-semibold">George</span>
+          <span className="ml-2 text-xs text-muted-foreground">Mature, calm storyteller</span>
+        </div>
         <p className="mt-1 text-xs text-cream/50">
-          {myVoiceReady
-            ? "Pick your cloned voice or any free ElevenLabs preset."
-            : "Free ElevenLabs preset voices. Record your own to add a personal voice."}
+          Every story is narrated by George. If unavailable, we'll automatically use a high-quality backup voice.
         </p>
       </section>
 
