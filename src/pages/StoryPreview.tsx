@@ -59,10 +59,6 @@ const StoryPreview = () => {
       setStory(s);
       setText(s.edited_text ?? s.original_text ?? "");
       setVoice(v);
-      // Default to "my voice" if cloned voice is ready, otherwise first preset
-      if (v?.status === "ready" && v?.elevenlabs_voice_id) {
-        setSelectedVoice(MY_VOICE_VALUE);
-      }
       setLoading(false);
     })();
     return () => { cancelled = true; };
