@@ -91,11 +91,6 @@ const StoryPreview = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [story, autoRate]);
 
-  const resolvedVoiceId = useMemo(() => {
-    if (selectedVoice === MY_VOICE_VALUE) return voice?.elevenlabs_voice_id ?? null;
-    return selectedVoice;
-  }, [selectedVoice, voice]);
-
   const saveEdits = async (silent = false) => {
     if (!story || !user) return;
     setSaving(true);
