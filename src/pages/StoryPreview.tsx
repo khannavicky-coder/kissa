@@ -270,7 +270,7 @@ const StoryPreview = () => {
       <div className="mt-5 grid gap-3 animate-fade-up" style={{ animationDelay: "0.12s" }}>
         <Button
           onClick={handleSynthesize}
-          disabled={synthesizing || saving || !text.trim() || !resolvedVoiceId}
+          disabled={synthesizing || saving || !text.trim()}
           className="h-14 w-full rounded-2xl bg-gradient-gold text-base font-bold text-primary-foreground shadow-gold transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70"
         >
           {synthesizing ? (
