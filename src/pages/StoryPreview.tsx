@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2, Mic, Save, Sparkles, Star, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppShell } from "@/components/AppShell";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,19 +16,7 @@ import {
   type VoiceProfile,
 } from "@/lib/supabaseService";
 
-/** Curated free ElevenLabs preset voices (no paid plan required). */
-const PRESET_VOICES: { id: string; label: string; description: string }[] = [
-  { id: "EXAVITQu4vr4xnSDxMaL", label: "Sarah", description: "Warm, friendly female" },
-  { id: "FGY2WhTYpPnrIDTdsKH5", label: "Laura", description: "Bright, expressive female" },
-  { id: "XrExE9yKIg1WjnnlVkGX", label: "Matilda", description: "Soft, gentle female" },
-  { id: "pFZP5JQG7iQjIQuC4Bku", label: "Lily", description: "Calm, soothing female" },
-  { id: "JBFqnCBsd6RMkjVDRZzb", label: "George", description: "Mature, calm male" },
-  { id: "onwK4e9ZLuTAKqWW03F9", label: "Daniel", description: "Clear, authoritative male" },
-  { id: "TX3LPaxmHKxFdv7VOQHJ", label: "Liam", description: "Friendly, youthful male" },
-  { id: "nPczCjzI2devNBz1zQrb", label: "Brian", description: "Deep, storyteller male" },
-];
 
-const MY_VOICE_VALUE = "__my_voice__";
 
 interface StoryRating {
   overall: number;
@@ -57,8 +44,6 @@ const StoryPreview = () => {
   const [ratingLoading, setRatingLoading] = useState(false);
   const [ratingError, setRatingError] = useState<string | null>(null);
 
-  // selectedVoice: either a preset voice id or the special MY_VOICE_VALUE
-  const [selectedVoice, setSelectedVoice] = useState<string>(PRESET_VOICES[0].id);
 
   useEffect(() => {
     document.title = "Review story · Kissa";
@@ -74,10 +59,6 @@ const StoryPreview = () => {
       setStory(s);
       setText(s.edited_text ?? s.original_text ?? "");
       setVoice(v);
-      // Default to "my voice" if cloned voice is ready, otherwise first preset
-      if (v?.status === "ready" && v?.elevenlabs_voice_id) {
-        setSelectedVoice(MY_VOICE_VALUE);
-      }
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -110,11 +91,6 @@ const StoryPreview = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [story, autoRate]);
 
-  const resolvedVoiceId = useMemo(() => {
-    if (selectedVoice === MY_VOICE_VALUE) return voice?.elevenlabs_voice_id ?? null;
-    return selectedVoice;
-  }, [selectedVoice, voice]);
-
   const saveEdits = async (silent = false) => {
     if (!story || !user) return;
     setSaving(true);
@@ -139,22 +115,17 @@ const StoryPreview = () => {
 
   const handleSynthesize = async () => {
     if (!story || !user) return;
-    if (!resolvedVoiceId) {
-      toast.error("Pick a voice or record your own first.");
-      return;
-    }
     setSynthesizing(true);
     try {
       await saveEdits(true);
       const { data, error } = await supabase.functions.invoke("synthesize-voice", {
-        body: { storyText: text, voiceId: resolvedVoiceId },
+        body: { storyText: text },
       });
       if (error) throw new Error(error.message);
       const audioUrl = (data?.audioUrl ?? "").toString();
       if (!audioUrl) throw new Error("No audio returned");
       await updateStory(story.id, {
         audio_url: audioUrl,
-        voice_id: resolvedVoiceId,
         status: "ready",
       });
       toast.success("Your story is ready ✨");
@@ -284,39 +255,22 @@ const StoryPreview = () => {
         className="mt-5 min-h-[320px] rounded-2xl border-2 border-border bg-card/60 p-5 text-[15px] leading-relaxed text-cream backdrop-blur-sm focus-visible:border-ring animate-fade-up font-display"
       />
 
-      {/* Voice picker */}
+      {/* Narrator voice (locked to George with OpenAI fallback) */}
       <section className="mt-5 animate-fade-up" style={{ animationDelay: "0.1s" }}>
         <label className="text-xs uppercase tracking-widest text-gold-soft">Narrator voice</label>
-        <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-          <SelectTrigger className="mt-2 h-12 rounded-2xl border-2 border-border bg-card/60 text-cream">
-            <SelectValue placeholder="Choose a voice" />
-          </SelectTrigger>
-          <SelectContent className="bg-popover">
-            {myVoiceReady && (
-              <SelectItem value={MY_VOICE_VALUE}>
-                <span className="font-semibold">My cloned voice</span>
-                <span className="ml-2 text-xs text-muted-foreground">Your recording</span>
-              </SelectItem>
-            )}
-            {PRESET_VOICES.map((v) => (
-              <SelectItem key={v.id} value={v.id}>
-                <span className="font-semibold">{v.label}</span>
-                <span className="ml-2 text-xs text-muted-foreground">{v.description}</span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="mt-2 flex h-12 items-center rounded-2xl border-2 border-border bg-card/60 px-4 text-cream">
+          <span className="font-semibold">George</span>
+          <span className="ml-2 text-xs text-muted-foreground">Mature, calm storyteller</span>
+        </div>
         <p className="mt-1 text-xs text-cream/50">
-          {myVoiceReady
-            ? "Pick your cloned voice or any free ElevenLabs preset."
-            : "Free ElevenLabs preset voices. Record your own to add a personal voice."}
+          Every story is narrated by George. If unavailable, we'll automatically use a high-quality backup voice.
         </p>
       </section>
 
       <div className="mt-5 grid gap-3 animate-fade-up" style={{ animationDelay: "0.12s" }}>
         <Button
           onClick={handleSynthesize}
-          disabled={synthesizing || saving || !text.trim() || !resolvedVoiceId}
+          disabled={synthesizing || saving || !text.trim()}
           className="h-14 w-full rounded-2xl bg-gradient-gold text-base font-bold text-primary-foreground shadow-gold transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70"
         >
           {synthesizing ? (

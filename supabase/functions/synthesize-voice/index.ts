@@ -52,16 +52,12 @@ async function synthesizeWithElevenLabs(
     },
   );
 
-  if (res.status === 429 || res.status === 402) {
-    // Quota exhausted — signal caller to use fallback
-    console.warn(`ElevenLabs quota hit (${res.status}). Falling back to OpenAI TTS.`);
-    return null;
-  }
-
-  if (res.status === 401) throw new Error("ElevenLabs API key invalid or expired.");
   if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`ElevenLabs error (${res.status}): ${errText}`);
+    // ANY failure (401 invalid key, 402 payment, 429 quota, 5xx, etc.)
+    // → fall back to OpenAI TTS so audio always plays.
+    const errText = await res.text().catch(() => "");
+    console.warn(`ElevenLabs failed (${res.status}): ${errText}. Falling back to OpenAI TTS.`);
+    return null;
   }
 
   const buffer = await res.arrayBuffer();
@@ -108,12 +104,12 @@ serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
 
   try {
-    const ELEVENLABS_API_KEY = getRequiredEnv("ELEVENLABS_API_KEY");
+    const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY")?.trim() || "";
     const OPENAI_API_KEY = getRequiredEnv("OPENAI_API_KEY");
     const SUPABASE_URL = getRequiredEnv("SUPABASE_URL");
     const SERVICE_ROLE_KEY = getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
 
-    let body: { storyText?: string; voiceId?: string };
+    let body: { storyText?: string };
     try {
       body = await req.json();
     } catch {
@@ -123,14 +119,18 @@ serve(async (req) => {
     const storyText = (body?.storyText ?? "").toString().trim();
     if (!storyText) return json(400, { error: "Missing storyText" });
 
-    // Use caller-provided voiceId (cloned voice) or fall back to George
-    const voiceId = (body?.voiceId ?? "").toString().trim() || EL_VOICE_ID;
+    // Always use George — voice selection is locked server-side
+    const voiceId = EL_VOICE_ID;
 
-    // ── Step 1: Try ElevenLabs ─────────────────────────────────────────────────
+    // ── Step 1: Try ElevenLabs (skip if key not configured) ───────────────────
     let audioBuffer: ArrayBuffer | null = null;
     let provider = "elevenlabs";
 
-    audioBuffer = await synthesizeWithElevenLabs(storyText, voiceId, ELEVENLABS_API_KEY);
+    if (ELEVENLABS_API_KEY) {
+      audioBuffer = await synthesizeWithElevenLabs(storyText, voiceId, ELEVENLABS_API_KEY);
+    } else {
+      console.warn("ELEVENLABS_API_KEY not configured — using OpenAI TTS directly.");
+    }
 
     // ── Step 2: Auto-fallback to OpenAI TTS if quota hit ──────────────────────
     if (audioBuffer === null) {
