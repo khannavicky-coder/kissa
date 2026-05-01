@@ -115,22 +115,17 @@ const StoryPreview = () => {
 
   const handleSynthesize = async () => {
     if (!story || !user) return;
-    if (!resolvedVoiceId) {
-      toast.error("Pick a voice or record your own first.");
-      return;
-    }
     setSynthesizing(true);
     try {
       await saveEdits(true);
       const { data, error } = await supabase.functions.invoke("synthesize-voice", {
-        body: { storyText: text, voiceId: resolvedVoiceId },
+        body: { storyText: text },
       });
       if (error) throw new Error(error.message);
       const audioUrl = (data?.audioUrl ?? "").toString();
       if (!audioUrl) throw new Error("No audio returned");
       await updateStory(story.id, {
         audio_url: audioUrl,
-        voice_id: resolvedVoiceId,
         status: "ready",
       });
       toast.success("Your story is ready ✨");
