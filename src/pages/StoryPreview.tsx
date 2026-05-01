@@ -44,8 +44,6 @@ const StoryPreview = () => {
   const [ratingLoading, setRatingLoading] = useState(false);
   const [ratingError, setRatingError] = useState<string | null>(null);
 
-  // selectedVoice: either a preset voice id or the special MY_VOICE_VALUE
-  const [selectedVoice, setSelectedVoice] = useState<string>(PRESET_VOICES[0].id);
 
   useEffect(() => {
     document.title = "Review story · Kissa";
