@@ -87,7 +87,31 @@ async function synthesizeWithOpenAI(
   });
 
   if (res.status === 401) throw new Error("OpenAI API key invalid or expired.");
-  if (res.status === 429) throw new Error("OpenAI rate limit hit — try again in a moment.");
+  if (res.status === 429) {
+    // Brief backoff and one retry — handles transient bursts.
+    console.warn("OpenAI TTS 429 — retrying after 1.5s backoff…");
+    await new Promise((r) => setTimeout(r, 1500));
+    const retry = await fetch("https://api.openai.com/v1/audio/speech", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        Accept: "audio/mpeg",
+      },
+      body: JSON.stringify({
+        model: OPENAI_TTS_MODEL,
+        voice: OPENAI_TTS_VOICE,
+        input: text,
+        response_format: "mp3",
+      }),
+    });
+    if (!retry.ok) {
+      throw new Error("Voice service is busy right now — please try again in a few seconds.");
+    }
+    const buf = await retry.arrayBuffer();
+    if (!buf.byteLength) throw new Error("OpenAI TTS returned empty audio.");
+    return buf;
+  }
   if (!res.ok) {
     const errText = await res.text();
     throw new Error(`OpenAI TTS error (${res.status}): ${errText}`);
