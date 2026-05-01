@@ -7,7 +7,6 @@ import { AppShell } from "@/components/AppShell";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { supabase } from "@/integrations/supabase/client";
 import {
   getStory,
   getVoiceProfile,
@@ -17,19 +16,7 @@ import {
   type VoiceProfile,
 } from "@/lib/supabaseService";
 
-/** Curated free ElevenLabs preset voices (no paid plan required). */
-const PRESET_VOICES: { id: string; label: string; description: string }[] = [
-  { id: "EXAVITQu4vr4xnSDxMaL", label: "Sarah", description: "Warm, friendly female" },
-  { id: "FGY2WhTYpPnrIDTdsKH5", label: "Laura", description: "Bright, expressive female" },
-  { id: "XrExE9yKIg1WjnnlVkGX", label: "Matilda", description: "Soft, gentle female" },
-  { id: "pFZP5JQG7iQjIQuC4Bku", label: "Lily", description: "Calm, soothing female" },
-  { id: "JBFqnCBsd6RMkjVDRZzb", label: "George", description: "Mature, calm male" },
-  { id: "onwK4e9ZLuTAKqWW03F9", label: "Daniel", description: "Clear, authoritative male" },
-  { id: "TX3LPaxmHKxFdv7VOQHJ", label: "Liam", description: "Friendly, youthful male" },
-  { id: "nPczCjzI2devNBz1zQrb", label: "Brian", description: "Deep, storyteller male" },
-];
 
-const MY_VOICE_VALUE = "__my_voice__";
 
 interface StoryRating {
   overall: number;
