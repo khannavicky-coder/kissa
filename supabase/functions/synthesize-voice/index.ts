@@ -52,16 +52,12 @@ async function synthesizeWithElevenLabs(
     },
   );
 
-  if (res.status === 429 || res.status === 402) {
-    // Quota exhausted — signal caller to use fallback
-    console.warn(`ElevenLabs quota hit (${res.status}). Falling back to OpenAI TTS.`);
-    return null;
-  }
-
-  if (res.status === 401) throw new Error("ElevenLabs API key invalid or expired.");
   if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`ElevenLabs error (${res.status}): ${errText}`);
+    // ANY failure (401 invalid key, 402 payment, 429 quota, 5xx, etc.)
+    // → fall back to OpenAI TTS so audio always plays.
+    const errText = await res.text().catch(() => "");
+    console.warn(`ElevenLabs failed (${res.status}): ${errText}. Falling back to OpenAI TTS.`);
+    return null;
   }
 
   const buffer = await res.arrayBuffer();
