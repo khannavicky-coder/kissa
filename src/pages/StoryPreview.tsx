@@ -122,6 +122,10 @@ const StoryPreview = () => {
         body: { storyText: text },
       });
       if (error) throw new Error(error.message);
+      if (data?.recoverable) {
+        toast.error(data.error || "Narration is unavailable right now. Please try again later.");
+        return;
+      }
       const audioUrl = (data?.audioUrl ?? "").toString();
       if (!audioUrl) throw new Error("No audio returned");
       await updateStory(story.id, {

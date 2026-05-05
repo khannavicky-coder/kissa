@@ -23,6 +23,14 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+const voiceUnavailable = (message: string) =>
+  json(200, {
+    audioUrl: null,
+    recoverable: true,
+    code: "VOICE_SERVICE_UNAVAILABLE",
+    error: message,
+  });
+
 const getRequiredEnv = (name: string): string => {
   const value = Deno.env.get(name)?.trim();
   if (!value) throw new Error(`${name} is not configured`);
@@ -90,7 +98,7 @@ async function callOpenAITTS(
 async function synthesizeWithOpenAI(
   text: string,
   apiKey: string,
-): Promise<ArrayBuffer> {
+): Promise<ArrayBuffer | null> {
   console.log("Using OpenAI TTS fallback (onyx voice).");
   const models = [OPENAI_TTS_MODEL, "gpt-4o-mini-tts"];
   const delays = [0, 1000, 2500, 5000];
@@ -108,16 +116,18 @@ async function synthesizeWithOpenAI(
         if (!buf.byteLength) throw new Error("OpenAI TTS returned empty audio.");
         return buf;
       }
-      if (res.status === 401) throw new Error("OpenAI API key invalid or expired.");
+      if (res.status === 401) {
+        console.warn("OpenAI TTS failed: API key invalid or expired.");
+        return null;
+      }
       lastErr = await res.text().catch(() => `${res.status}`);
       console.warn(`OpenAI TTS ${res.status} (model=${model}): ${lastErr.slice(0, 200)}`);
       // Only retry on 429/5xx; otherwise break to try next model
       if (res.status !== 429 && res.status < 500) break;
     }
   }
-  throw new Error(
-    "Voice service is temporarily over quota. Please add billing/credits to your OpenAI account or try again later.",
-  );
+  console.warn(`OpenAI TTS unavailable after retries: ${lastErr.slice(0, 300)}`);
+  return null;
 }
 
 // ── Main handler ───────────────────────────────────────────────────────────────
@@ -127,9 +137,9 @@ serve(async (req) => {
 
   try {
     const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY")?.trim() || "";
-    const OPENAI_API_KEY = getRequiredEnv("OPENAI_API_KEY");
     const SUPABASE_URL = getRequiredEnv("SUPABASE_URL");
     const SERVICE_ROLE_KEY = getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")?.trim() || "";
 
     let body: { storyText?: string };
     try {
@@ -157,7 +167,17 @@ serve(async (req) => {
     // ── Step 2: Auto-fallback to OpenAI TTS if quota hit ──────────────────────
     if (audioBuffer === null) {
       provider = "openai";
-      audioBuffer = await synthesizeWithOpenAI(storyText, OPENAI_API_KEY);
+      if (!OPENAI_API_KEY) {
+        console.warn("OPENAI_API_KEY not configured — no backup voice available.");
+      } else {
+        audioBuffer = await synthesizeWithOpenAI(storyText, OPENAI_API_KEY);
+      }
+    }
+
+    if (audioBuffer === null) {
+      return voiceUnavailable(
+        "Narration is unavailable right now because both voice providers rejected the request. ElevenLabs needs a paid plan for this environment, and OpenAI needs available billing/credits.",
+      );
     }
 
     // ── Step 3: Upload to Supabase Storage ────────────────────────────────────
