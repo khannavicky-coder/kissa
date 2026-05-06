@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Check, Sparkles } from "lucide-react";
 import { AppShell, Stars } from "@/components/AppShell";
 import { cn } from "@/lib/utils";
