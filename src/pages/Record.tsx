@@ -1,15 +1,66 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Stars } from "@/components/AppShell";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Record = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     document.title = "Voice personalisation · Kissa";
   }, []);
+
+  // Pre-fill email and check if already on waitlist
+  useEffect(() => {
+    if (!user) return;
+    if (user.email) setEmail(user.email);
+    supabase
+      .from("voice_waitlist")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setSubmitted(true);
+      });
+  }, [user]);
+
+  const handleSubmit = async () => {
+    if (!user) return;
+    const trimmed = email.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("voice_waitlist")
+        .insert({ email: trimmed, user_id: user.id });
+      if (error) {
+        if (error.code === "23505") {
+          // duplicate – already on list
+          setSubmitted(true);
+        } else {
+          throw error;
+        }
+      } else {
+        setSubmitted(true);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="relative min-h-screen w-full overflow-hidden bg-gradient-aurora">
@@ -54,10 +105,38 @@ const Record = () => {
             custom voice cloning very soon ✨
           </p>
 
+          {submitted ? (
+            <div className="mt-8 flex flex-col items-center gap-2 rounded-2xl border border-border bg-card/60 p-5 backdrop-blur-sm animate-fade-up">
+              <CheckCircle2 className="h-8 w-8 text-gold" />
+              <p className="max-w-xs text-sm font-semibold text-cream">
+                You're on the list! We'll email you the moment your voice recording is ready.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-8 flex w-full max-w-sm flex-col gap-3 animate-fade-up">
+              <Input
+                type="email"
+                placeholder="Your email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-14 rounded-2xl border-border bg-card/60 px-5 text-base text-cream placeholder:text-cream/40 backdrop-blur-sm"
+              />
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={loading}
+                className="h-14 w-full rounded-2xl bg-gradient-gold text-base font-bold text-primary-foreground shadow-gold transition-transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                {loading ? "Saving…" : "Notify me when it's ready"}
+              </Button>
+            </div>
+          )}
+
           <Button
             type="button"
+            variant="outline"
             onClick={() => navigate("/home")}
-            className="mt-10 h-14 w-full max-w-sm rounded-2xl bg-gradient-gold text-base font-bold text-primary-foreground shadow-gold transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            className="mt-6 h-14 w-full max-w-sm rounded-2xl border-2 border-border bg-secondary/60 text-base font-semibold text-cream hover:bg-secondary"
           >
             Back to home
           </Button>
