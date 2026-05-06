@@ -38,6 +38,9 @@ const TIERS: Tier[] = [
 ];
 
 const Pricing = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   useEffect(() => {
     document.title = "Pricing · Kissa";
   }, []);
