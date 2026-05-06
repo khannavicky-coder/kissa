@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Check, Sparkles } from "lucide-react";
 import { AppShell, Stars } from "@/components/AppShell";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,9 @@ const TIERS: Tier[] = [
 ];
 
 const Pricing = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   useEffect(() => {
     document.title = "Pricing · Kissa";
   }, []);
@@ -94,17 +98,26 @@ const Pricing = () => {
                 ))}
               </ul>
 
-              <button
-                disabled
-                className={cn(
-                  "mt-5 h-12 w-full rounded-2xl text-sm font-bold transition-transform",
-                  t.highlight
-                    ? "bg-gradient-gold text-primary-foreground shadow-gold opacity-70"
-                    : "bg-secondary text-cream/70 opacity-70",
-                )}
-              >
-                Coming soon
-              </button>
+              {t.name === "Free" ? (
+                <button
+                  onClick={() => navigate(user ? "/home" : "/sign-up")}
+                  className="mt-5 h-12 w-full rounded-2xl text-sm font-bold transition-transform bg-gradient-gold text-primary-foreground shadow-gold hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Get started free
+                </button>
+              ) : (
+                <button
+                  disabled
+                  className={cn(
+                    "mt-5 h-12 w-full rounded-2xl text-sm font-bold transition-transform",
+                    t.highlight
+                      ? "bg-gradient-gold text-primary-foreground shadow-gold opacity-70"
+                      : "bg-secondary text-cream/70 opacity-70",
+                  )}
+                >
+                  Coming soon
+                </button>
+              )}
             </article>
           ))}
         </div>
