@@ -93,7 +93,12 @@ const Pricing = () => {
               <ul className="mt-4 space-y-2">
                 {t.features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm text-cream/85">
-                    <Check className="mt-0.5 h-4 w-4 flex-none text-gold" /> {f}
+                    <Check className="mt-0.5 h-4 w-4 flex-none text-gold" />
+                    {f === "Your cloned voice" ? (
+                      <span>{f} <span className="text-cream/50">(coming soon)</span></span>
+                    ) : (
+                      f
+                    )}
                   </li>
                 ))}
               </ul>
