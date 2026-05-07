@@ -135,7 +135,7 @@ const Home = () => {
       )}
 
       {/* Recent stories */}
-      <section className="mt-10 animate-fade-up" style={{ animationDelay: "0.15s" }}>
+      <section className="mt-10 min-w-0 animate-fade-up" style={{ animationDelay: "0.15s" }}>
         <div className="mb-3 flex items-center justify-between">
           <p className="text-xs uppercase tracking-widest text-gold-soft">Recent stories</p>
           <Link to="/library" className="text-xs font-semibold text-gold hover:underline">See all</Link>
@@ -156,7 +156,7 @@ const Home = () => {
               <li key={s.id}>
                 <Link
                   to={s.status === "ready" ? `/play/${s.id}` : `/preview/${s.id}`}
-                  className="flex items-center gap-3 rounded-2xl bg-card/60 p-4 backdrop-blur-sm border border-border hover:border-gold/40 transition-colors"
+                  className="flex min-w-0 items-center gap-3 overflow-hidden rounded-2xl bg-card/60 p-4 backdrop-blur-sm border border-border hover:border-gold/40 transition-colors"
                 >
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
                     <Sparkles className="h-5 w-5 text-gold" />
