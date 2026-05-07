@@ -61,7 +61,7 @@ const Library = () => {
         </div>
       )}
 
-      <div className="mt-6 animate-fade-up" style={{ animationDelay: "0.1s" }}>
+      <div className="mt-6 min-w-0 animate-fade-up" style={{ animationDelay: "0.1s" }}>
         {loading ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>
         ) : visible.length === 0 ? (
@@ -77,16 +77,16 @@ const Library = () => {
             {visible.map((s) => {
               const child = childById(s.child_id);
               return (
-                <li key={s.id} className="group flex items-center gap-3 rounded-2xl bg-card/60 p-4 backdrop-blur-sm border border-border hover:border-gold/40 transition-colors">
+                <li key={s.id} className="group flex min-w-0 items-center gap-3 overflow-hidden rounded-2xl bg-card/60 p-4 backdrop-blur-sm border border-border hover:border-gold/40 transition-colors">
                   <Link
                     to={s.status === "ready" ? `/play/${s.id}` : `/preview/${s.id}`}
-                    className="flex flex-1 items-center gap-3"
+                    className="flex min-w-0 flex-1 items-center gap-3"
                   >
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
                       <Sparkles className="h-5 w-5 text-gold" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-display text-base font-bold text-cream">
+                      <p className="line-clamp-2 font-display text-base font-bold text-cream">
                         {s.title || s.theme || "Untitled story"}
                       </p>
                       <p className="text-xs text-cream/60">
