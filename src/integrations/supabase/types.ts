@@ -50,6 +50,7 @@ export type Database = {
           child_name: string | null
           created_at: string
           id: string
+          narrator_voice_id: string | null
           parent_name: string | null
           updated_at: string
           user_id: string
@@ -59,6 +60,7 @@ export type Database = {
           child_name?: string | null
           created_at?: string
           id?: string
+          narrator_voice_id?: string | null
           parent_name?: string | null
           updated_at?: string
           user_id: string
@@ -68,6 +70,7 @@ export type Database = {
           child_name?: string | null
           created_at?: string
           id?: string
+          narrator_voice_id?: string | null
           parent_name?: string | null
           updated_at?: string
           user_id?: string
