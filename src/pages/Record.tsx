@@ -120,7 +120,7 @@ const Record = () => {
     setPlayingVoiceId(voiceId);
     try {
       const { data, error } = await supabase.functions.invoke("synthesize-voice", {
-        body: { storyText: PREVIEW_TEXT, voiceId },
+        body: { storyText: text, voiceId },
       });
       if (error) throw new Error(error.message || "Preview failed");
       const audioUrl = data?.audioUrl;
