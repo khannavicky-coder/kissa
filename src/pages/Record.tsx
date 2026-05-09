@@ -43,6 +43,11 @@ const Record = () => {
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Who picks the voice
+  const [childPicksVoice, setChildPicksVoice] = useState<boolean>(false);
+  const [savedChildPicksVoice, setSavedChildPicksVoice] = useState<boolean>(false);
+  const [savingPicker, setSavingPicker] = useState(false);
+
   useEffect(() => {
     document.title = "Voice personalisation · Kissa";
   }, []);
