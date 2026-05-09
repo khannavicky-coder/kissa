@@ -166,6 +166,26 @@ const Record = () => {
     }
   };
 
+  const handleSavePicker = async (next: boolean) => {
+    setChildPicksVoice(next);
+    if (!user) return;
+    setSavingPicker(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ child_picks_voice: next })
+        .eq("user_id", user.id);
+      if (error) throw error;
+      setSavedChildPicksVoice(next);
+    } catch (err) {
+      // revert on failure
+      setChildPicksVoice(savedChildPicksVoice);
+      toast.error(err instanceof Error ? err.message : "Couldn't save preference");
+    } finally {
+      setSavingPicker(false);
+    }
+  };
+
   const hasChanges = selectedVoiceId !== savedVoiceId;
 
   return (
