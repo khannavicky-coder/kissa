@@ -102,7 +102,7 @@ const Record = () => {
     }
   };
 
-  const handlePlayPreview = async (voiceId: string) => {
+  const handlePlayPreview = async (voiceId: string, text: string = PREVIEW_TEXT) => {
     // If already playing this voice, stop
     if (playingVoiceId === voiceId && audioRef.current) {
       audioRef.current.pause();
