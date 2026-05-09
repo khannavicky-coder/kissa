@@ -19,7 +19,15 @@ const NARRATOR_VOICES = [
   { id: "ThT5KcBeYPX3keUQqHPh", name: "Dorothy", desc: "Pleasant & British — gentle fairy tales" },
 ] as const;
 
+const CHARACTER_VOICES = [
+  { id: "xwUbPOIZ6ZbN2HDwIH9H", emoji: "🐰", name: "Squeaky Rabbit", desc: "Bouncy and excited — children love it" },
+  { id: "DV4mEkJgV8ZwNCOrjF7L", emoji: "🐻", name: "Grumpy Bear", desc: "Deep and lovable — secretly warm-hearted" },
+  { id: "9m6m0XokgtJFpqsimBiN", emoji: "🐒", name: "Giggly Monkey", desc: "Fast-talking and chaotic — pure fun" },
+  { id: "AVYJxaX5Uon5HKPfdVo9", emoji: "🐭", name: "Tiny Mouse", desc: "Adorably squeaky — instantly funny" },
+] as const;
+
 const PREVIEW_TEXT = "Once upon a time, in a land far away...";
+const CHARACTER_PREVIEW_TEXT = "Hello! I will tell your story tonight!";
 
 const Record = () => {
   const navigate = useNavigate();
