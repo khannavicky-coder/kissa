@@ -68,13 +68,17 @@ const Record = () => {
 
     supabase
       .from("profiles")
-      .select("narrator_voice_id")
+      .select("narrator_voice_id, child_picks_voice")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
         if (data?.narrator_voice_id) {
           setSavedVoiceId(data.narrator_voice_id);
           setSelectedVoiceId(data.narrator_voice_id);
+        }
+        if (typeof data?.child_picks_voice === "boolean") {
+          setChildPicksVoice(data.child_picks_voice);
+          setSavedChildPicksVoice(data.child_picks_voice);
         }
       });
   }, [user]);
