@@ -19,7 +19,15 @@ const NARRATOR_VOICES = [
   { id: "ThT5KcBeYPX3keUQqHPh", name: "Dorothy", desc: "Pleasant & British — gentle fairy tales" },
 ] as const;
 
+const CHARACTER_VOICES = [
+  { id: "xwUbPOIZ6ZbN2HDwIH9H", emoji: "🐰", name: "Squeaky Rabbit", desc: "Bouncy and excited — children love it" },
+  { id: "DV4mEkJgV8ZwNCOrjF7L", emoji: "🐻", name: "Grumpy Bear", desc: "Deep and lovable — secretly warm-hearted" },
+  { id: "9m6m0XokgtJFpqsimBiN", emoji: "🐒", name: "Giggly Monkey", desc: "Fast-talking and chaotic — pure fun" },
+  { id: "AVYJxaX5Uon5HKPfdVo9", emoji: "🐭", name: "Tiny Mouse", desc: "Adorably squeaky — instantly funny" },
+] as const;
+
 const PREVIEW_TEXT = "Once upon a time, in a land far away...";
+const CHARACTER_PREVIEW_TEXT = "Hello! I will tell your story tonight!";
 
 const Record = () => {
   const navigate = useNavigate();
@@ -94,7 +102,7 @@ const Record = () => {
     }
   };
 
-  const handlePlayPreview = async (voiceId: string) => {
+  const handlePlayPreview = async (voiceId: string, text: string = PREVIEW_TEXT) => {
     // If already playing this voice, stop
     if (playingVoiceId === voiceId && audioRef.current) {
       audioRef.current.pause();
@@ -112,7 +120,7 @@ const Record = () => {
     setPlayingVoiceId(voiceId);
     try {
       const { data, error } = await supabase.functions.invoke("synthesize-voice", {
-        body: { storyText: PREVIEW_TEXT, voiceId },
+        body: { storyText: text, voiceId },
       });
       if (error) throw new Error(error.message || "Preview failed");
       const audioUrl = data?.audioUrl;
@@ -273,6 +281,54 @@ const Record = () => {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Character voices */}
+            <div className="mt-8 border-t border-border pt-6">
+              <h2 className="font-display text-xl font-bold text-gold">Character voices — let your child pick their favourite!</h2>
+
+              <div className="mt-5 flex flex-col gap-3">
+                {CHARACTER_VOICES.map((voice) => {
+                  const isSelected = selectedVoiceId === voice.id;
+                  const isPlaying = playingVoiceId === voice.id;
+                  return (
+                    <button
+                      key={voice.id}
+                      type="button"
+                      onClick={() => setSelectedVoiceId(voice.id)}
+                      className={`relative flex items-center gap-3 rounded-2xl border-2 p-4 text-left backdrop-blur-sm transition-all ${
+                        isSelected
+                          ? "border-gold bg-card/80 shadow-gold/20 shadow-md"
+                          : "border-border bg-card/60 hover:border-gold/40"
+                      }`}
+                    >
+                      {isSelected && (
+                        <div className="absolute top-3 right-3">
+                          <Check className="h-4 w-4 text-gold" />
+                        </div>
+                      )}
+                      <div
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlayPreview(voice.id, CHARACTER_PREVIEW_TEXT);
+                        }}
+                      >
+                        {isPlaying ? (
+                          <Square className="h-5 w-5 text-gold fill-gold" />
+                        ) : (
+                          <Play className="h-5 w-5 text-gold fill-gold" />
+                        )}
+                      </div>
+                      <span className="text-3xl shrink-0" aria-hidden>{voice.emoji}</span>
+                      <div className="min-w-0 flex-1 pr-6">
+                        <span className="font-display text-sm font-bold text-cream">{voice.name}</span>
+                        <p className="mt-0.5 text-xs text-cream/60">{voice.desc}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {hasChanges && (
