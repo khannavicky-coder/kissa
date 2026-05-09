@@ -5,6 +5,17 @@ import { Button } from "@/components/ui/button";
 import { AppShell, Stars } from "@/components/AppShell";
 import { toast } from "sonner";
 import { getStory, incrementPlayCount, type Story } from "@/lib/supabaseService";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+
+const CHARACTER_VOICES = [
+  { id: "xwUbPOIZ6ZbN2HDwIH9H", emoji: "🐰", name: "Squeaky Rabbit" },
+  { id: "DV4mEkJgV8ZwNCOrjF7L", emoji: "🐻", name: "Grumpy Bear" },
+  { id: "9m6m0XokgtJFpqsimBiN", emoji: "🐒", name: "Giggly Monkey" },
+  { id: "AVYJxaX5Uon5HKPfdVo9", emoji: "🐭", name: "Tiny Mouse" },
+] as const;
+
+const CHARACTER_PREVIEW_TEXT = "Hello! I will tell your story tonight!";
 
 const formatTime = (s: number) => {
   if (!isFinite(s)) return "0:00";
@@ -16,6 +27,7 @@ const formatTime = (s: number) => {
 const StoryPlayer = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [story, setStory] = useState<Story | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,6 +35,15 @@ const StoryPlayer = () => {
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [counted, setCounted] = useState(false);
+
+  // Character picker state (per-story, not persisted)
+  const [childPicksVoice, setChildPicksVoice] = useState<boolean | null>(null);
+  const [pickerDone, setPickerDone] = useState(false);
+  const [pickedVoiceId, setPickedVoiceId] = useState<string | null>(null);
+  const [glowVoiceId, setGlowVoiceId] = useState<string | null>(null);
+  const [resynthesizing, setResynthesizing] = useState(false);
+  const [overrideAudioUrl, setOverrideAudioUrl] = useState<string | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     document.title = "Story time · Kissa";
@@ -35,15 +56,32 @@ const StoryPlayer = () => {
       setStory(s);
       setLoading(false);
     });
+    // Reset per-story picker state when navigating to a new story
+    setPickerDone(false);
+    setPickedVoiceId(null);
+    setOverrideAudioUrl(null);
   }, [id, navigate]);
+
+  // Load parent preference
+  useEffect(() => {
+    if (!user) { setChildPicksVoice(false); return; }
+    supabase
+      .from("profiles")
+      .select("child_picks_voice")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setChildPicksVoice(!!data?.child_picks_voice);
+      });
+  }, [user]);
 
   const toggle = async () => {
     const el = audioRef.current;
-    if (!el || !story?.audio_url) return;
+    if (!el || !audioSrc) return;
     if (el.paused) {
       await el.play();
       setPlaying(true);
-      if (!counted) {
+      if (!counted && story) {
         setCounted(true);
         incrementPlayCount(story.id, story.played_count).catch(() => {});
       }
@@ -66,13 +104,137 @@ const StoryPlayer = () => {
     }
   };
 
-  if (loading || !story) {
+  const handleCharacterPick = async (voiceId: string) => {
+    if (resynthesizing || !story) return;
+    setPickedVoiceId(voiceId);
+    setGlowVoiceId(voiceId);
+
+    // Play short preview
+    try {
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+        previewAudioRef.current = null;
+      }
+      const { data: previewData } = await supabase.functions.invoke("synthesize-voice", {
+        body: { storyText: CHARACTER_PREVIEW_TEXT, voiceId },
+      });
+      const previewUrl = previewData?.audioUrl;
+      if (previewUrl) {
+        const previewAudio = new Audio(previewUrl);
+        previewAudioRef.current = previewAudio;
+        previewAudio.play().catch(() => {});
+      }
+    } catch {
+      // non-fatal
+    }
+
+    // Re-synthesize the full story with the chosen voice (in parallel-ish with preview)
+    setResynthesizing(true);
+    try {
+      const storyText = story.edited_text ?? story.original_text ?? "";
+      const { data, error } = await supabase.functions.invoke("synthesize-voice", {
+        body: { storyText, voiceId },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.recoverable) {
+        toast.error(data.error || "Narration is unavailable right now.");
+        setResynthesizing(false);
+        return;
+      }
+      const audioUrl = (data?.audioUrl ?? "").toString();
+      if (!audioUrl) throw new Error("No audio returned");
+      setOverrideAudioUrl(audioUrl);
+      setPickerDone(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't prepare the story voice");
+      setPickedVoiceId(null);
+      setGlowVoiceId(null);
+    } finally {
+      setResynthesizing(false);
+    }
+  };
+
+  if (loading || !story || childPicksVoice === null) {
     return (
       <AppShell hideNav>
         <div className="flex flex-1 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gold" /></div>
       </AppShell>
     );
   }
+
+  const showPicker = childPicksVoice && !pickerDone && !!story.audio_url;
+
+  if (showPicker) {
+    return (
+      <main className="relative min-h-screen w-full overflow-hidden bg-gradient-aurora">
+        <Stars />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full opacity-30 blur-3xl"
+          style={{ background: "hsl(var(--gold) / 0.6)" }}
+        />
+        <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-md flex-col px-6 pb-10 pt-8 sm:max-w-lg">
+          <header className="flex items-center justify-between animate-fade-up">
+            <button onClick={() => navigate("/library")} className="flex items-center gap-1 text-sm font-semibold text-gold-soft hover:text-gold">
+              <ArrowLeft className="h-4 w-4" /> Library
+            </button>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-gold" />
+              <span className="font-display text-lg font-bold text-gold">Kissa</span>
+            </div>
+          </header>
+
+          <section className="mt-12 flex-1 text-center animate-fade-up" style={{ animationDelay: "0.05s" }}>
+            <h1 className="font-display text-3xl font-black leading-[1.1] text-gold sm:text-4xl">
+              Who's telling your story tonight?
+            </h1>
+            <p className="mx-auto mt-3 max-w-sm text-sm text-cream/70">
+              Tap a character to hear them.
+            </p>
+
+            <div className="mt-10 grid grid-cols-2 gap-4">
+              {CHARACTER_VOICES.map((voice) => {
+                const isPicked = pickedVoiceId === voice.id;
+                const glowing = glowVoiceId === voice.id;
+                return (
+                  <button
+                    key={voice.id}
+                    type="button"
+                    disabled={resynthesizing && !isPicked}
+                    onClick={() => handleCharacterPick(voice.id)}
+                    className={`group relative flex aspect-square flex-col items-center justify-center gap-3 rounded-3xl border-2 p-4 backdrop-blur-sm transition-all active:scale-95 disabled:opacity-50 ${
+                      isPicked
+                        ? "border-gold bg-card/80 shadow-gold scale-[1.02]"
+                        : "border-border bg-card/60 hover:border-gold/50"
+                    } ${glowing ? "animate-pulse-glow" : ""}`}
+                    style={
+                      glowing
+                        ? { boxShadow: "0 0 40px hsl(var(--gold) / 0.6), 0 0 80px hsl(var(--gold) / 0.3)" }
+                        : undefined
+                    }
+                  >
+                    <span className="text-[72px] leading-none" aria-hidden>
+                      {voice.emoji}
+                    </span>
+                    <span className="font-display text-base font-bold text-cream">{voice.name}</span>
+                    {isPicked && resynthesizing && (
+                      <Loader2 className="absolute right-3 top-3 h-5 w-5 animate-spin text-gold" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {resynthesizing && (
+              <p className="mt-8 text-sm text-cream/70">Getting your story ready…</p>
+            )}
+          </section>
+        </div>
+      </main>
+    );
+  }
+
+  const audioSrc = overrideAudioUrl ?? story.audio_url;
 
   return (
     <main className="relative min-h-screen w-full overflow-hidden bg-gradient-aurora">
@@ -105,11 +267,11 @@ const StoryPlayer = () => {
 
         {/* Player */}
         <div className="mt-12 animate-fade-up" style={{ animationDelay: "0.1s" }}>
-          {story.audio_url ? (
+          {audioSrc ? (
             <>
               <audio
                 ref={audioRef}
-                src={story.audio_url}
+                src={audioSrc}
                 preload="metadata"
                 onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
                 onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}

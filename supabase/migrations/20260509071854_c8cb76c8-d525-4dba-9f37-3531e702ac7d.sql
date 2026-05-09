@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS child_picks_voice boolean NOT NULL DEFAULT false;
