@@ -360,6 +360,54 @@ const Record = () => {
               </div>
             </div>
 
+            {/* Who picks the voice */}
+            <div className="mt-8 border-t border-border pt-6">
+              <h2 className="font-display text-xl font-bold text-gold">Who picks the voice?</h2>
+              <p className="mt-1 text-sm text-cream/60">
+                Decide who chooses the storyteller for each story.
+              </p>
+
+              <div
+                role="radiogroup"
+                aria-label="Who picks the voice"
+                className="mt-4 grid grid-cols-2 gap-1 rounded-2xl border-2 border-border bg-card/60 p-1 backdrop-blur-sm"
+              >
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={!childPicksVoice}
+                  disabled={savingPicker}
+                  onClick={() => handleSavePicker(false)}
+                  className={`h-12 rounded-xl text-sm font-semibold transition-all ${
+                    !childPicksVoice
+                      ? "bg-gradient-gold text-primary-foreground shadow-gold"
+                      : "text-cream/70 hover:text-cream"
+                  }`}
+                >
+                  I choose
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={childPicksVoice}
+                  disabled={savingPicker}
+                  onClick={() => handleSavePicker(true)}
+                  className={`h-12 rounded-xl text-sm font-semibold transition-all ${
+                    childPicksVoice
+                      ? "bg-gradient-gold text-primary-foreground shadow-gold"
+                      : "text-cream/70 hover:text-cream"
+                  }`}
+                >
+                  My child chooses
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-cream/50">
+                {childPicksVoice
+                  ? "Your child will pick a character voice each story."
+                  : "Your saved narrator voice will be used for every story."}
+              </p>
+            </div>
+
             {hasChanges && (
               <Button
                 type="button"
