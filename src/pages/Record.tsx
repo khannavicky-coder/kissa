@@ -283,6 +283,54 @@ const Record = () => {
               })}
             </div>
 
+            {/* Character voices */}
+            <div className="mt-8 border-t border-border pt-6">
+              <h2 className="font-display text-xl font-bold text-gold">Character voices — let your child pick their favourite!</h2>
+
+              <div className="mt-5 flex flex-col gap-3">
+                {CHARACTER_VOICES.map((voice) => {
+                  const isSelected = selectedVoiceId === voice.id;
+                  const isPlaying = playingVoiceId === voice.id;
+                  return (
+                    <button
+                      key={voice.id}
+                      type="button"
+                      onClick={() => setSelectedVoiceId(voice.id)}
+                      className={`relative flex items-center gap-3 rounded-2xl border-2 p-4 text-left backdrop-blur-sm transition-all ${
+                        isSelected
+                          ? "border-gold bg-card/80 shadow-gold/20 shadow-md"
+                          : "border-border bg-card/60 hover:border-gold/40"
+                      }`}
+                    >
+                      {isSelected && (
+                        <div className="absolute top-3 right-3">
+                          <Check className="h-4 w-4 text-gold" />
+                        </div>
+                      )}
+                      <div
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlayPreview(voice.id, CHARACTER_PREVIEW_TEXT);
+                        }}
+                      >
+                        {isPlaying ? (
+                          <Square className="h-5 w-5 text-gold fill-gold" />
+                        ) : (
+                          <Play className="h-5 w-5 text-gold fill-gold" />
+                        )}
+                      </div>
+                      <span className="text-3xl shrink-0" aria-hidden>{voice.emoji}</span>
+                      <div className="min-w-0 flex-1 pr-6">
+                        <span className="font-display text-sm font-bold text-cream">{voice.name}</span>
+                        <p className="mt-0.5 text-xs text-cream/60">{voice.desc}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {hasChanges && (
               <Button
                 type="button"
