@@ -46,6 +46,8 @@ const Home = () => {
         ]);
         if (cancelled) return;
         setParentName(prof?.parent_name ?? "");
+        setNarratorVoiceId(prof?.narrator_voice_id ?? null);
+        setChildPicksVoice(prof?.child_picks_voice ?? false);
         setChildren(kids);
         setVoice(vp);
         setRecentStories(stories.slice(0, 3));
