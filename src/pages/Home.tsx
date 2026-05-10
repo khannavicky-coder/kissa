@@ -18,6 +18,21 @@ const ANIMAL_EMOJI: Record<string, string> = {
   cat: "🐱", fox: "🦊", bear: "🐻", panda: "🐼", rabbit: "🐰", owl: "🦉", frog: "🐸", lion: "🦁",
 };
 
+const VOICE_EMOJI_NAME: Record<string, string> = {
+  xwUbPOIZ6ZbN2HDwIH9H: "🐰 Squeaky Rabbit",
+  DV4mEkJgV8ZwNCOrjF7L: "🐻 Grumpy Bear",
+  "9m6m0XokgtJFpqsimBiN": "🐒 Giggly Monkey",
+  AVYJxaX5Uon5HKPfdVo9: "🐭 Tiny Mouse",
+  JBFqnCBsd6RMkjVDRZzb: "🎙 George",
+  "21m00Tcm4TlvDq8ikWAM": "🎙 Rachel",
+  onwK4e9ZLuTAKqWW03F9: "🎙 Daniel",
+  MF3mGyEYCl7XYWbV9V6O: "🎙 Elli",
+  pNInz6obpgDQGcFmaJgB: "🎙 Adam",
+  AZnzlk1XvdvUeBnXmlld: "🎙 Domi",
+  yoZ06aMxZJJ28mfd3POQ: "🎙 Sam",
+  ThT5KcBeYPX3keUqHPh: "🎙 Dorothy",
+};
+
 const Home = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
