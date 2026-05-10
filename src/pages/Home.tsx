@@ -18,6 +18,21 @@ const ANIMAL_EMOJI: Record<string, string> = {
   cat: "🐱", fox: "🦊", bear: "🐻", panda: "🐼", rabbit: "🐰", owl: "🦉", frog: "🐸", lion: "🦁",
 };
 
+const VOICE_EMOJI_NAME: Record<string, string> = {
+  xwUbPOIZ6ZbN2HDwIH9H: "🐰 Squeaky Rabbit",
+  DV4mEkJgV8ZwNCOrjF7L: "🐻 Grumpy Bear",
+  "9m6m0XokgtJFpqsimBiN": "🐒 Giggly Monkey",
+  AVYJxaX5Uon5HKPfdVo9: "🐭 Tiny Mouse",
+  JBFqnCBsd6RMkjVDRZzb: "🎙 George",
+  "21m00Tcm4TlvDq8ikWAM": "🎙 Rachel",
+  onwK4e9ZLuTAKqWW03F9: "🎙 Daniel",
+  MF3mGyEYCl7XYWbV9V6O: "🎙 Elli",
+  pNInz6obpgDQGcFmaJgB: "🎙 Adam",
+  AZnzlk1XvdvUeBnXmlld: "🎙 Domi",
+  yoZ06aMxZJJ28mfd3POQ: "🎙 Sam",
+  ThT5KcBeYPX3keUqHPh: "🎙 Dorothy",
+};
+
 const Home = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -26,6 +41,8 @@ const Home = () => {
   const [children, setChildren] = useState<Child[]>([]);
   const [voice, setVoice] = useState<VoiceProfile | null>(null);
   const [recentStories, setRecentStories] = useState<Story[]>([]);
+  const [narratorVoiceId, setNarratorVoiceId] = useState<string | null>(null);
+  const [childPicksVoice, setChildPicksVoice] = useState(false);
 
   useEffect(() => {
     document.title = "Home · Kissa";
@@ -44,6 +61,8 @@ const Home = () => {
         ]);
         if (cancelled) return;
         setParentName(prof?.parent_name ?? "");
+        setNarratorVoiceId(prof?.narrator_voice_id ?? null);
+        setChildPicksVoice(prof?.child_picks_voice ?? false);
         setChildren(kids);
         setVoice(vp);
         setRecentStories(stories.slice(0, 3));
@@ -122,6 +141,22 @@ const Home = () => {
             ))}
           </div>
         </section>
+      )}
+
+      {/* Voice indicator */}
+      {!loading && children.length > 0 && (
+        <div className="mt-4 flex items-center justify-between animate-fade-up">
+          <p className="text-xs text-cream/60">
+            {childPicksVoice
+              ? "🎲 Your child picks tonight's voice"
+              : VOICE_EMOJI_NAME[narratorVoiceId ?? "JBFqnCBsd6RMkjVDRZzb"] ?? narratorVoiceId}
+          </p>
+          {!childPicksVoice && (
+            <Link to="/record" className="text-xs font-semibold text-gold hover:underline">
+              Change
+            </Link>
+          )}
+        </div>
       )}
 
       {/* Primary CTA */}
