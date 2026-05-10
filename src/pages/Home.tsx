@@ -143,6 +143,22 @@ const Home = () => {
         </section>
       )}
 
+      {/* Voice indicator */}
+      {!loading && children.length > 0 && (
+        <div className="mt-4 flex items-center justify-between animate-fade-up">
+          <p className="text-xs text-cream/60">
+            {childPicksVoice
+              ? "🎲 Your child picks tonight's voice"
+              : VOICE_EMOJI_NAME[narratorVoiceId ?? "JBFqnCBsd6RMkjVDRZzb"] ?? narratorVoiceId}
+          </p>
+          {!childPicksVoice && (
+            <Link to="/record" className="text-xs font-semibold text-gold hover:underline">
+              Change
+            </Link>
+          )}
+        </div>
+      )}
+
       {/* Primary CTA */}
       {!loading && children.length > 0 && (
         <Button
