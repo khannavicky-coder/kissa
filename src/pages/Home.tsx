@@ -26,6 +26,8 @@ const Home = () => {
   const [children, setChildren] = useState<Child[]>([]);
   const [voice, setVoice] = useState<VoiceProfile | null>(null);
   const [recentStories, setRecentStories] = useState<Story[]>([]);
+  const [narratorVoiceId, setNarratorVoiceId] = useState<string | null>(null);
+  const [childPicksVoice, setChildPicksVoice] = useState(false);
 
   useEffect(() => {
     document.title = "Home · Kissa";
