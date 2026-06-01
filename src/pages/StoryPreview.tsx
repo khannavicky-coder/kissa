@@ -78,12 +78,20 @@ const StoryPreview = () => {
     if (!id || !user) return;
     let cancelled = false;
     (async () => {
-      const [s, v] = await Promise.all([getStory(id), getVoiceProfile(user.id)]);
+      const [s, v, profileRes] = await Promise.all([
+        getStory(id),
+        getVoiceProfile(user.id),
+        supabase.from("profiles").select("narrator_voice_id").eq("user_id", user.id).maybeSingle(),
+      ]);
       if (cancelled) return;
       if (!s) { toast.error("Story not found"); navigate("/home", { replace: true }); return; }
       setStory(s);
       setText(s.edited_text ?? s.original_text ?? "");
       setVoice(v);
+      const savedId = profileRes.data?.narrator_voice_id;
+      if (savedId && ALL_VOICES.some((x) => x.id === savedId)) {
+        setNarratorVoiceId(savedId);
+      }
       setLoading(false);
     })();
     return () => { cancelled = true; };
