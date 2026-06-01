@@ -66,6 +66,8 @@ const StoryPreview = () => {
   const [rating, setRating] = useState<StoryRating | null>(null);
   const [ratingLoading, setRatingLoading] = useState(false);
   const [ratingError, setRatingError] = useState<string | null>(null);
+  const [narratorVoiceId, setNarratorVoiceId] = useState<string>(DEFAULT_VOICE_ID);
+
 
 
   useEffect(() => {
