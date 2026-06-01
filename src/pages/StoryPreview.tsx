@@ -15,6 +15,29 @@ import {
   type Story,
   type VoiceProfile,
 } from "@/lib/supabaseService";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const ALL_VOICES = [
+  { id: "JBFqnCBsd6RMkjVDRZzb", label: "🎙 George", desc: "Warm & captivating — recommended" },
+  { id: "21m00Tcm4TlvDq8ikWAM", label: "🎙 Rachel", desc: "Calm & gentle — perfect for bedtime" },
+  { id: "onwK4e9ZLuTAKqWW03F9", label: "🎙 Daniel", desc: "Deep & British — great for adventures" },
+  { id: "MF3mGyEYCl7XYWbV9V6O", label: "🎙 Elli", desc: "Warm & emotional — soft and soothing" },
+  { id: "pNInz6obpgDQGcFmaJgB", label: "🎙 Adam", desc: "Deep & calm — classic bedtime voice" },
+  { id: "AZnzlk1XvdvUeBnXmlld", label: "🎙 Domi", desc: "Confident & strong — energetic stories" },
+  { id: "yoZ06aMxZJJ28mfd3POQ", label: "🎙 Sam", desc: "Raspy & engaging — fun adventures" },
+  { id: "ThT5KcBeYPX3keUQqHPh", label: "🎙 Dorothy", desc: "Pleasant & British — gentle fairy tales" },
+  { id: "xwUbPOIZ6ZbN2HDwIH9H", label: "🐰 Squeaky Rabbit", desc: "Bouncy and excited" },
+  { id: "DV4mEkJgV8ZwNCOrjF7L", label: "🐻 Grumpy Bear", desc: "Deep and lovable" },
+  { id: "9m6m0XokgtJFpqsimBiN", label: "🐒 Giggly Monkey", desc: "Fast-talking and chaotic" },
+  { id: "AVYJxaX5Uon5HKPfdVo9", label: "🐭 Tiny Mouse", desc: "Adorably squeaky" },
+] as const;
+const DEFAULT_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb";
 
 
 
