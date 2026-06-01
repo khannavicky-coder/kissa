@@ -292,17 +292,43 @@ const StoryPreview = () => {
         className="mt-5 min-h-[320px] rounded-2xl border-2 border-border bg-card/60 p-5 text-[15px] leading-relaxed text-cream backdrop-blur-sm focus-visible:border-ring animate-fade-up font-display"
       />
 
-      {/* Narrator voice (locked to George with OpenAI fallback) */}
+      {/* Narrator voice selector — persists choice to profile */}
       <section className="mt-5 animate-fade-up" style={{ animationDelay: "0.1s" }}>
         <label className="text-xs uppercase tracking-widest text-gold-soft">Narrator voice</label>
-        <div className="mt-2 flex h-12 items-center rounded-2xl border-2 border-border bg-card/60 px-4 text-cream">
-          <span className="font-semibold">George</span>
-          <span className="ml-2 text-xs text-muted-foreground">Mature, calm storyteller</span>
-        </div>
+        <Select
+          value={narratorVoiceId}
+          onValueChange={async (val) => {
+            setNarratorVoiceId(val);
+            if (!user) return;
+            const { error } = await supabase
+              .from("profiles")
+              .update({ narrator_voice_id: val })
+              .eq("user_id", user.id);
+            if (error) {
+              toast.error("Couldn't save voice preference");
+            } else {
+              const v = ALL_VOICES.find((x) => x.id === val);
+              toast.success(`Narrator set to ${v?.label ?? "selected voice"}`);
+            }
+          }}
+        >
+          <SelectTrigger className="mt-2 h-12 rounded-2xl border-2 border-border bg-card/60 px-4 text-cream">
+            <SelectValue placeholder="Choose a narrator voice" />
+          </SelectTrigger>
+          <SelectContent className="bg-card text-cream">
+            {ALL_VOICES.map((v) => (
+              <SelectItem key={v.id} value={v.id}>
+                <span className="font-semibold">{v.label}</span>
+                <span className="ml-2 text-xs text-muted-foreground">{v.desc}</span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <p className="mt-1 text-xs text-cream/50">
-          Every story is narrated by George. If unavailable, we'll automatically use a high-quality backup voice.
+          Your selected voice is saved and used for every new story until you change it. If unavailable, we'll automatically use a high-quality backup voice.
         </p>
       </section>
+
 
       <div className="mt-5 grid gap-3 animate-fade-up" style={{ animationDelay: "0.12s" }}>
         <Button
