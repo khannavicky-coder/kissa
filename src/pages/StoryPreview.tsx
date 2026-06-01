@@ -152,7 +152,7 @@ const StoryPreview = () => {
     try {
       await saveEdits(true);
       const { data, error } = await supabase.functions.invoke("synthesize-voice", {
-        body: { storyText: text },
+        body: { storyText: text, voiceId: narratorVoiceId },
       });
       if (error) throw new Error(error.message);
       if (data?.recoverable) {
