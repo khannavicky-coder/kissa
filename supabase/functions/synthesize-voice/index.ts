@@ -141,7 +141,7 @@ serve(async (req) => {
     const SERVICE_ROLE_KEY = getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")?.trim() || "";
 
-    let body: { storyText?: string };
+    let body: { storyText?: string; voiceId?: string };
     try {
       body = await req.json();
     } catch {
@@ -151,8 +151,9 @@ serve(async (req) => {
     const storyText = (body?.storyText ?? "").toString().trim();
     if (!storyText) return json(400, { error: "Missing storyText" });
 
-    // Always use George — voice selection is locked server-side
-    const voiceId = EL_VOICE_ID;
+    // Use caller-supplied voiceId, fall back to George
+    const requestedVoiceId = (body?.voiceId ?? "").toString().trim();
+    const voiceId = /^[A-Za-z0-9]+$/.test(requestedVoiceId) ? requestedVoiceId : EL_VOICE_ID;
 
     // ── Step 1: Try ElevenLabs (skip if key not configured) ───────────────────
     let audioBuffer: ArrayBuffer | null = null;
