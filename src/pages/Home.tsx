@@ -27,10 +27,6 @@ const VOICE_EMOJI_NAME: Record<string, string> = {
   "21m00Tcm4TlvDq8ikWAM": "🎙 Rachel",
   onwK4e9ZLuTAKqWW03F9: "🎙 Daniel",
   MF3mGyEYCl7XYWbV9V6O: "🎙 Elli",
-  pNInz6obpgDQGcFmaJgB: "🎙 Adam",
-  AZnzlk1XvdvUeBnXmlld: "🎙 Domi",
-  yoZ06aMxZJJ28mfd3POQ: "🎙 Sam",
-  ThT5KcBeYPX3keUqHPh: "🎙 Dorothy",
 };
 
 const Home = () => {

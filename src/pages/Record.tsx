@@ -13,10 +13,6 @@ const NARRATOR_VOICES = [
   { id: "21m00Tcm4TlvDq8ikWAM", name: "Rachel", desc: "Calm & gentle — perfect for bedtime" },
   { id: "onwK4e9ZLuTAKqWW03F9", name: "Daniel", desc: "Deep & British — great for adventures" },
   { id: "MF3mGyEYCl7XYWbV9V6O", name: "Elli", desc: "Warm & emotional — soft and soothing" },
-  { id: "pNInz6obpgDQGcFmaJgB", name: "Adam", desc: "Deep & calm — classic bedtime voice" },
-  { id: "AZnzlk1XvdvUeBnXmlld", name: "Domi", desc: "Confident & strong — energetic stories" },
-  { id: "yoZ06aMxZJJ28mfd3POQ", name: "Sam", desc: "Raspy & engaging — fun adventures" },
-  { id: "ThT5KcBeYPX3keUQqHPh", name: "Dorothy", desc: "Pleasant & British — gentle fairy tales" },
 ] as const;
 
 const CHARACTER_VOICES = [
