@@ -190,23 +190,31 @@ const Children = () => {
             if (child) {
               const animal = ANIMALS.find((a) => a.key === child.avatar) ?? ANIMALS[0];
               return (
-                <article
+                <div
                   key={child.id}
-                  className="relative flex flex-col items-center gap-2 rounded-3xl bg-card/70 p-4 shadow-soft backdrop-blur-sm border border-border"
+                  className="relative rounded-3xl bg-card/70 shadow-soft backdrop-blur-sm border border-border hover:border-gold/60 transition-colors"
                 >
                   <button
-                    onClick={() => handleDelete(child.id, child.name)}
+                    type="button"
+                    onClick={() => navigate(`/story/new?childId=${child.id}`)}
+                    aria-label={`Select ${child.name}`}
+                    className="flex w-full flex-col items-center gap-2 rounded-3xl p-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+                  >
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-gold text-5xl shadow-gold animate-float-slow">
+                      {animal.emoji}
+                    </div>
+                    <p className="font-display text-lg font-bold text-cream">{child.name}</p>
+                    <p className="text-xs uppercase tracking-widest text-gold-soft">{child.age} years</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleDelete(child.id, child.name); }}
                     aria-label={`Remove ${child.name}`}
-                    className="absolute right-2 top-2 rounded-full p-1.5 text-cream/60 hover:bg-destructive/20 hover:text-destructive transition-colors"
+                    className="absolute right-2 top-2 z-10 rounded-full p-1.5 text-cream/60 hover:bg-destructive/20 hover:text-destructive transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-gold text-5xl shadow-gold animate-float-slow">
-                    {animal.emoji}
-                  </div>
-                  <p className="font-display text-lg font-bold text-cream">{child.name}</p>
-                  <p className="text-xs uppercase tracking-widest text-gold-soft">{child.age} years</p>
-                </article>
+                </div>
               );
             }
             return (
