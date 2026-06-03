@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Loader2, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Loader2, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,32 +34,6 @@ const childSchema = z.object({
   avatar: z.string().min(1, "Pick an animal"),
 });
 
-const Stars = () => (
-  <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-    {[
-      { top: "8%", left: "12%", size: 6, delay: "0s" },
-      { top: "14%", left: "82%", size: 4, delay: "0.6s" },
-      { top: "30%", left: "6%", size: 3, delay: "1.2s" },
-      { top: "44%", left: "90%", size: 4, delay: "1.8s" },
-      { top: "70%", left: "94%", size: 5, delay: "1.5s" },
-      { top: "86%", left: "20%", size: 4, delay: "2.1s" },
-    ].map((s, i) => (
-      <span
-        key={i}
-        className="absolute rounded-full animate-twinkle"
-        style={{
-          top: s.top,
-          left: s.left,
-          width: s.size,
-          height: s.size,
-          animationDelay: s.delay,
-          boxShadow: "0 0 12px hsl(var(--gold) / 0.7)",
-          backgroundColor: "hsl(var(--gold-soft))",
-        }}
-      />
-    ))}
-  </div>
-);
 
 const Children = () => {
   const navigate = useNavigate();
