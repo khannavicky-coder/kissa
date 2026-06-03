@@ -120,7 +120,15 @@ const Home = () => {
       {/* Children chips */}
       {children.length > 0 && (
         <section className="mt-8 animate-fade-up" style={{ animationDelay: "0.1s" }}>
-          <p className="mb-3 text-xs uppercase tracking-widest text-gold-soft">Little dreamers</p>
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-xs uppercase tracking-widest text-gold-soft">Little dreamers</p>
+            <Link
+              to="/children"
+              className="flex items-center gap-1 text-xs font-semibold text-gold hover:underline"
+            >
+              <UserPlus className="h-3 w-3" /> Add child
+            </Link>
+          </div>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {children.map((c) => (
               <button
@@ -135,6 +143,16 @@ const Home = () => {
                 <p className="text-[10px] uppercase tracking-widest text-gold-soft">{c.age} years</p>
               </button>
             ))}
+            <Link
+              to="/children"
+              className="flex min-w-[120px] flex-col items-center gap-2 rounded-3xl border border-dashed border-border bg-card/40 p-4 backdrop-blur-sm hover:border-gold/40 hover:bg-card/60 transition-colors"
+            >
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary/80 text-gold">
+                <Plus className="h-6 w-6" />
+              </div>
+              <p className="font-display text-sm font-bold text-cream/70">Add child</p>
+              <p className="text-[10px] uppercase tracking-widest text-transparent">.</p>
+            </Link>
           </div>
         </section>
       )}
