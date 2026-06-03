@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Loader2, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Loader2, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,32 +34,6 @@ const childSchema = z.object({
   avatar: z.string().min(1, "Pick an animal"),
 });
 
-const Stars = () => (
-  <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-    {[
-      { top: "8%", left: "12%", size: 6, delay: "0s" },
-      { top: "14%", left: "82%", size: 4, delay: "0.6s" },
-      { top: "30%", left: "6%", size: 3, delay: "1.2s" },
-      { top: "44%", left: "90%", size: 4, delay: "1.8s" },
-      { top: "70%", left: "94%", size: 5, delay: "1.5s" },
-      { top: "86%", left: "20%", size: 4, delay: "2.1s" },
-    ].map((s, i) => (
-      <span
-        key={i}
-        className="absolute rounded-full animate-twinkle"
-        style={{
-          top: s.top,
-          left: s.left,
-          width: s.size,
-          height: s.size,
-          animationDelay: s.delay,
-          boxShadow: "0 0 12px hsl(var(--gold) / 0.7)",
-          backgroundColor: "hsl(var(--gold-soft))",
-        }}
-      />
-    ))}
-  </div>
-);
 
 const Children = () => {
   const navigate = useNavigate();
@@ -158,30 +133,25 @@ const Children = () => {
   const canAdd = children.length < 2;
 
   return (
-    <main className="relative min-h-screen w-full overflow-hidden bg-gradient-aurora">
-      <Stars />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full opacity-30 blur-3xl"
-        style={{ background: "hsl(var(--gold) / 0.6)" }}
-      />
+    <AppShell>
+      <div className="flex items-center justify-between animate-fade-up">
+        <Link to="/home" className="flex items-center gap-1 text-sm font-semibold text-gold-soft hover:text-gold">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </Link>
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-gold" />
+          <span className="font-display text-xl font-bold tracking-tight text-gold">Kissa</span>
+        </div>
+      </div>
 
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-md flex-col px-6 pb-10 pt-8 sm:max-w-lg">
-        <header className="flex items-center justify-between animate-fade-up">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-gold" />
-            <span className="font-display text-xl font-bold tracking-tight text-gold">Kissa</span>
-          </div>
-        </header>
-
-        <section className="mt-6 text-center animate-fade-up" style={{ animationDelay: "0.05s" }}>
-          <h1 className="font-display text-4xl font-black leading-[1.05] text-gold sm:text-5xl">
-            Who's coming<br />on the journey?
-          </h1>
-          <p className="mx-auto mt-3 max-w-xs text-sm text-cream/75">
-            Add up to two little dreamers. Each one picks their own cuddly companion.
-          </p>
-        </section>
+      <section className="mt-6 text-center animate-fade-up" style={{ animationDelay: "0.05s" }}>
+        <h1 className="font-display text-4xl font-black leading-[1.05] text-gold sm:text-5xl">
+          Who's coming<br />on the journey?
+        </h1>
+        <p className="mx-auto mt-3 max-w-xs text-sm text-cream/75">
+          Add up to two little dreamers. Each one picks their own cuddly companion.
+        </p>
+      </section>
 
         {/* Slots */}
         <div className="mt-8 grid grid-cols-2 gap-4 animate-fade-up" style={{ animationDelay: "0.1s" }}>
@@ -342,23 +312,12 @@ const Children = () => {
           </form>
         )}
 
-        {!showForm && children.length > 0 && canAdd && (
-          <Button
-            onClick={() => setShowForm(true)}
-            variant="outline"
-            className="mt-6 h-12 w-full rounded-2xl border-2 border-border bg-secondary/60 text-sm font-semibold text-cream hover:bg-secondary"
-          >
-            <Plus className="mr-2 h-4 w-4" /> Add another
-          </Button>
-        )}
-
         {!canAdd && (
           <p className="mt-6 text-center text-xs text-muted-foreground">
             Two profiles is plenty — Kissa likes a cozy crowd.
           </p>
         )}
-      </div>
-    </main>
+    </AppShell>
   );
 };
 
