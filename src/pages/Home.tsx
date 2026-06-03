@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, Loader2, Mic, Plus, Sparkles, Wand2 } from "lucide-react";
+import { BookOpen, Loader2, Mic, Plus, Sparkles, UserPlus, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppHeader, AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
