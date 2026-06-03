@@ -312,13 +312,11 @@ const Children = () => {
           </form>
         )}
 
-
         {!canAdd && (
           <p className="mt-6 text-center text-xs text-muted-foreground">
             Two profiles is plenty — Kissa likes a cozy crowd.
           </p>
         )}
-      </div>
     </AppShell>
   );
 };
