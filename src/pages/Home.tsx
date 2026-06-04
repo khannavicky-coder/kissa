@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { BookOpen, Loader2, Mic, Plus, Sparkles, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppHeader, AppShell } from "@/components/AppShell";
+import { AddChildDialog } from "@/components/AddChildDialog";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getProfile,
@@ -39,6 +40,7 @@ const Home = () => {
   const [recentStories, setRecentStories] = useState<Story[]>([]);
   const [narratorVoiceId, setNarratorVoiceId] = useState<string | null>(null);
   const [childPicksVoice, setChildPicksVoice] = useState(false);
+  const [addChildOpen, setAddChildOpen] = useState(false);
 
   useEffect(() => {
     document.title = "Home · Kissa";
@@ -88,9 +90,10 @@ const Home = () => {
 
       {/* Setup banners */}
       {needsChild && (
-        <Link
-          to="/children"
-          className="mt-6 flex items-center gap-3 rounded-2xl border border-gold/40 bg-card/60 p-4 backdrop-blur-sm animate-fade-up"
+        <button
+          type="button"
+          onClick={() => setAddChildOpen(true)}
+          className="mt-6 flex w-full items-center gap-3 rounded-2xl border border-gold/40 bg-card/60 p-4 text-left backdrop-blur-sm animate-fade-up hover:border-gold/70 transition-colors"
         >
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-gold shadow-gold">
             <Plus className="h-5 w-5 text-primary-foreground" />
@@ -99,7 +102,7 @@ const Home = () => {
             <p className="font-display text-base font-bold text-cream">Add your little dreamer</p>
             <p className="text-xs text-cream/70">A child profile lets us personalise every story.</p>
           </div>
-        </Link>
+        </button>
       )}
 
       {!needsChild && needsVoice && (
@@ -137,16 +140,19 @@ const Home = () => {
                 <p className="text-[10px] uppercase tracking-widest text-gold-soft">{c.age} years</p>
               </button>
             ))}
-            <Link
-              to="/children"
-              className="flex min-w-[120px] flex-col items-center gap-2 rounded-3xl border border-dashed border-border bg-card/40 p-4 backdrop-blur-sm hover:border-gold/40 hover:bg-card/60 transition-colors"
-            >
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary/80 text-gold">
-                <Plus className="h-6 w-6" />
-              </div>
-              <p className="font-display text-sm font-bold text-cream/70">Add child</p>
-              <p className="text-[10px] uppercase tracking-widest text-transparent">.</p>
-            </Link>
+            {children.length < 2 && (
+              <button
+                type="button"
+                onClick={() => setAddChildOpen(true)}
+                className="flex min-w-[120px] flex-col items-center gap-2 rounded-3xl border border-dashed border-border bg-card/40 p-4 backdrop-blur-sm hover:border-gold/40 hover:bg-card/60 transition-colors"
+              >
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary/80 text-gold">
+                  <Plus className="h-6 w-6" />
+                </div>
+                <p className="font-display text-sm font-bold text-cream/70">Add child</p>
+                <p className="text-[10px] uppercase tracking-widest text-transparent">.</p>
+              </button>
+            )}
           </div>
         </section>
       )}
@@ -218,6 +224,12 @@ const Home = () => {
           </ul>
         )}
       </section>
+
+      <AddChildDialog
+        open={addChildOpen}
+        onOpenChange={setAddChildOpen}
+        onAdded={(c) => setChildren((prev) => [...prev, c])}
+      />
     </AppShell>
   );
 };
