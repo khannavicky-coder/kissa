@@ -120,14 +120,8 @@ const Home = () => {
       {/* Children chips */}
       {children.length > 0 && (
         <section className="mt-8 animate-fade-up" style={{ animationDelay: "0.1s" }}>
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3">
             <p className="text-xs uppercase tracking-widest text-gold-soft">Little dreamers</p>
-            <Link
-              to="/children"
-              className="flex items-center gap-1 text-xs font-semibold text-gold hover:underline"
-            >
-              <UserPlus className="h-3 w-3" /> Add child
-            </Link>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {children.map((c) => (
