@@ -43,7 +43,12 @@ const Library = () => {
 
   return (
     <AppShell>
-      <AppHeader />
+      <div className="flex items-center justify-between animate-fade-up">
+        <Link to="/home" className="flex items-center gap-1 text-sm font-semibold text-gold-soft hover:text-gold">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </Link>
+        <AppHeader />
+      </div>
 
       <section className="mt-6 animate-fade-up" style={{ animationDelay: "0.05s" }}>
         <p className="text-xs uppercase tracking-widest text-gold-soft">Library</p>
