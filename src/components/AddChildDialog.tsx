@@ -9,12 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export type AddedChild = {
-  id: string;
-  name: string;
-  age: number;
-  avatar: string;
-};
+import type { Child } from "@/lib/supabaseService";
+
+export type AddedChild = Child;
 
 const ANIMALS: { key: string; label: string; emoji: string }[] = [
   { key: "cat", label: "Kitten", emoji: "🐱" },
