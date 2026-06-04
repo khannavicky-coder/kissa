@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, BookOpen, Loader2, Sparkles, Trash2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AppHeader, AppShell } from "@/components/AppShell";
+import { AppShell } from "@/components/AppShell";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { deleteStory, listChildren, listStories, type Child, type Story } from "@/lib/supabaseService";
