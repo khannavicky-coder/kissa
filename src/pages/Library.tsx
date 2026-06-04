@@ -47,7 +47,10 @@ const Library = () => {
         <Link to="/home" className="flex items-center gap-1 text-sm font-semibold text-gold-soft hover:text-gold">
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
-        <AppHeader />
+        <Link to="/home" className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-gold" />
+          <span className="font-display text-xl font-bold tracking-tight text-gold">Kissa</span>
+        </Link>
       </div>
 
       <section className="mt-6 animate-fade-up" style={{ animationDelay: "0.05s" }}>
