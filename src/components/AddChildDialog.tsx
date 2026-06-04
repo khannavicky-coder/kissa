@@ -79,7 +79,7 @@ export const AddChildDialog = ({ open, onOpenChange, onAdded }: Props) => {
     const { data, error } = await supabase
       .from("children")
       .insert({ parent_user_id: userId, name: parsed.data.name, age: parsed.data.age, avatar: parsed.data.avatar })
-      .select("id, name, age, avatar")
+      .select("*")
       .single();
     setSubmitting(false);
     if (error) {
