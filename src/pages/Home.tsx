@@ -224,6 +224,12 @@ const Home = () => {
           </ul>
         )}
       </section>
+
+      <AddChildDialog
+        open={addChildOpen}
+        onOpenChange={setAddChildOpen}
+        onAdded={(c) => setChildren((prev) => [...prev, c])}
+      />
     </AppShell>
   );
 };
