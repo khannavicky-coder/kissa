@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, Loader2, Sparkles, Trash2, Wand2 } from "lucide-react";
+import { ArrowLeft, BookOpen, Loader2, Sparkles, Trash2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AppHeader, AppShell } from "@/components/AppShell";
+import { AppShell } from "@/components/AppShell";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { deleteStory, listChildren, listStories, type Child, type Story } from "@/lib/supabaseService";
@@ -43,7 +43,15 @@ const Library = () => {
 
   return (
     <AppShell>
-      <AppHeader />
+      <div className="flex items-center justify-between animate-fade-up">
+        <Link to="/home" className="flex items-center gap-1 text-sm font-semibold text-gold-soft hover:text-gold">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </Link>
+        <Link to="/home" className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-gold" />
+          <span className="font-display text-xl font-bold tracking-tight text-gold">Kissa</span>
+        </Link>
+      </div>
 
       <section className="mt-6 animate-fade-up" style={{ animationDelay: "0.05s" }}>
         <p className="text-xs uppercase tracking-widest text-gold-soft">Library</p>
