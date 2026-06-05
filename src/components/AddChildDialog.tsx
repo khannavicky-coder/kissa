@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { logEvent } from "@/lib/audit";
 
 import type { Child } from "@/lib/supabaseService";
 
@@ -83,9 +84,11 @@ export const AddChildDialog = ({ open, onOpenChange, onAdded }: Props) => {
       .single();
     setSubmitting(false);
     if (error) {
+      logEvent({ action: "child.create", status: "failure", error_message: error.message, metadata: { name: parsed.data.name } });
       toast.error(error.message.includes("only have up to 2") ? "You've reached the 2 profile limit." : error.message);
       return;
     }
+    logEvent({ action: "child.create", entity_type: "child", entity_id: data!.id, metadata: { name: data!.name, age: data!.age, avatar: data!.avatar } });
     toast.success(`${data!.name} joined Kissa! ✨`);
     onAdded(data as AddedChild);
     reset();
