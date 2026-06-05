@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import kissaHero from "@/assets/kissa-hero.png";
+import { logEvent } from "@/lib/audit";
 
 const signUpSchema = z.object({
   parentName: z.string().trim().min(1, "Tell us your name").max(60),
@@ -100,9 +101,11 @@ const SignUp = () => {
     });
     setLoading(null);
     if (error) {
+      logEvent({ action: "auth.signup", status: "failure", error_message: error.message, metadata: { method: "email" } });
       toast.error(error.message.includes("registered") ? "This email already has an account." : error.message);
       return;
     }
+    logEvent({ action: "auth.signup", metadata: { method: "email" } });
     toast.success(`Welcome, ${result.data.parentName}! Your Kissa account is ready 🌙`);
   };
 

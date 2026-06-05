@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Stars } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
+import { logEvent } from "@/lib/audit";
 
 const schema = z.object({
   email: z.string().trim().email("Please enter a valid email").max(255),

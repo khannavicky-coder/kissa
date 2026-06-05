@@ -120,6 +120,7 @@ const StoryBrief = () => {
       navigate(`/preview/${draft.id}`, { replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong";
+      logEvent({ action: "story.generate", status: "failure", entity_type: "child", entity_id: childId ?? null, error_message: msg });
       toast.error(msg);
       setSubmitting(false);
     }
