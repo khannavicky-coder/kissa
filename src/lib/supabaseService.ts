@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { logEvent } from "@/lib/audit";
 
 export type Child = Tables<"children">;
 export type ChildInsert = TablesInsert<"children">;
@@ -34,7 +35,11 @@ export async function getCurrentSession() {
 
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  if (error) {
+    logEvent({ action: "auth.signout", status: "failure", error_message: error.message });
+    throw error;
+  }
+  logEvent({ action: "auth.signout" });
 }
 
 /* -------------------------------- Profiles -------------------------------- */
@@ -92,7 +97,11 @@ export async function createChild(child: ChildInsert): Promise<Child> {
     .insert(child)
     .select()
     .single();
-  if (error) throw error;
+  if (error) {
+    logEvent({ action: "child.create", status: "failure", error_message: error.message, metadata: { name: child.name } });
+    throw error;
+  }
+  logEvent({ action: "child.create", entity_type: "child", entity_id: data.id, metadata: { name: data.name, age: data.age } });
   return data;
 }
 
@@ -103,13 +112,21 @@ export async function updateChild(id: string, updates: ChildUpdate): Promise<Chi
     .eq("id", id)
     .select()
     .single();
-  if (error) throw error;
+  if (error) {
+    logEvent({ action: "child.update", status: "failure", entity_type: "child", entity_id: id, error_message: error.message });
+    throw error;
+  }
+  logEvent({ action: "child.update", entity_type: "child", entity_id: id, metadata: { fields: Object.keys(updates) } });
   return data;
 }
 
 export async function deleteChild(id: string): Promise<void> {
   const { error } = await supabase.from("children").delete().eq("id", id);
-  if (error) throw error;
+  if (error) {
+    logEvent({ action: "child.delete", status: "failure", entity_type: "child", entity_id: id, error_message: error.message });
+    throw error;
+  }
+  logEvent({ action: "child.delete", entity_type: "child", entity_id: id });
 }
 
 /* ----------------------------- Voice Profiles ----------------------------- */
@@ -162,7 +179,11 @@ export async function createStory(story: StoryInsert): Promise<Story> {
     .insert(story)
     .select()
     .single();
-  if (error) throw error;
+  if (error) {
+    logEvent({ action: "story.create", status: "failure", error_message: error.message, metadata: { child_id: story.child_id } });
+    throw error;
+  }
+  logEvent({ action: "story.create", entity_type: "story", entity_id: data.id, metadata: { title: data.title, child_id: data.child_id } });
   return data;
 }
 
@@ -173,18 +194,30 @@ export async function updateStory(id: string, updates: StoryUpdate): Promise<Sto
     .eq("id", id)
     .select()
     .single();
-  if (error) throw error;
+  if (error) {
+    logEvent({ action: "story.update", status: "failure", entity_type: "story", entity_id: id, error_message: error.message });
+    throw error;
+  }
+  logEvent({ action: "story.update", entity_type: "story", entity_id: id, metadata: { fields: Object.keys(updates) } });
   return data;
 }
 
 export async function deleteStory(id: string): Promise<void> {
   const { error } = await supabase.from("stories").delete().eq("id", id);
-  if (error) throw error;
+  if (error) {
+    logEvent({ action: "story.delete", status: "failure", entity_type: "story", entity_id: id, error_message: error.message });
+    throw error;
+  }
+  logEvent({ action: "story.delete", entity_type: "story", entity_id: id });
 }
 
 export async function logStoryEdit(edit: StoryEditInsert): Promise<void> {
   const { error } = await supabase.from("story_edits").insert(edit);
-  if (error) throw error;
+  if (error) {
+    logEvent({ action: "story.edit", status: "failure", entity_type: "story", entity_id: edit.story_id, error_message: error.message });
+    throw error;
+  }
+  logEvent({ action: "story.edit", entity_type: "story", entity_id: edit.story_id });
 }
 
 export async function incrementPlayCount(id: string, current: number): Promise<void> {
