@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, Loader2, Mic, Plus, Sparkles, Wand2 } from "lucide-react";
+import { BookOpen, Loader2, Mic, Plus, Sparkles, Trash2, Wand2 } from "lucide-react";
+import { toast } from "sonner";
+import { deleteChild } from "@/lib/supabaseService";
 import { Button } from "@/components/ui/button";
 import { AppHeader, AppShell } from "@/components/AppShell";
 import { AddChildDialog } from "@/components/AddChildDialog";
