@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2, Wand2 } from "lucide-react";
+import { Loader2, Trash2, Wand2 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,11 @@ import { AppHeader, AppShell } from "@/components/AppShell";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { createStory, listChildren, type Child } from "@/lib/supabaseService";
+import { createStory, deleteChild, listChildren, type Child } from "@/lib/supabaseService";
+
+const ANIMAL_EMOJI: Record<string, string> = {
+  cat: "🐱", fox: "🦊", bear: "🐻", panda: "🐼", rabbit: "🐰", owl: "🦉", frog: "🐸", lion: "🦁",
+};
 
 const LESSONS = [
   "Saving up for something special",
@@ -134,22 +138,50 @@ const StoryBrief = () => {
 
       <form onSubmit={handleGenerate} className="mt-6 space-y-5 animate-fade-up" style={{ animationDelay: "0.1s" }}>
         {/* Child picker */}
-        {children.length > 1 && (
+        {children.length >= 1 && (
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase tracking-wider text-gold-soft">For</Label>
-            <div className="flex gap-2">
+            <div className="flex gap-3 overflow-x-auto pb-2">
               {children.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setChildId(c.id)}
-                  className={cn(
-                    "flex-1 rounded-2xl px-4 py-3 text-sm font-semibold transition-all",
-                    childId === c.id ? "bg-gradient-gold text-primary-foreground shadow-gold" : "bg-secondary text-cream/80",
-                  )}
-                >
-                  {c.name}
-                </button>
+                <div key={c.id} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setChildId(c.id)}
+                    className={cn(
+                      "flex min-w-[120px] flex-col items-center gap-2 rounded-3xl p-4 border transition-all",
+                      childId === c.id
+                        ? "border-gold/70 bg-card/80 shadow-gold"
+                        : "border-border bg-card/50 hover:border-gold/40",
+                    )}
+                  >
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-gold text-3xl shadow-gold">
+                      {ANIMAL_EMOJI[c.avatar] ?? "⭐"}
+                    </div>
+                    <p className="font-display text-sm font-bold text-cream">{c.name}</p>
+                    <p className="text-[10px] uppercase tracking-widest text-gold-soft">{c.age} years</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const prev = children;
+                      setChildren((list) => list.filter((x) => x.id !== c.id));
+                      if (childId === c.id) setChildId(prev.find((x) => x.id !== c.id)?.id ?? "");
+                      try {
+                        await deleteChild(c.id);
+                        console.info("[child:deleted]", { id: c.id, name: c.name, by: user?.id, at: new Date().toISOString() });
+                        toast.success(`${c.name}'s profile removed`);
+                      } catch {
+                        setChildren(prev);
+                        toast.error("Couldn't remove profile");
+                      }
+                    }}
+                    aria-label={`Remove ${c.name}`}
+                    className="absolute right-1.5 top-1.5 z-10 rounded-full p-1.5 text-cream/60 hover:bg-destructive/20 hover:text-destructive transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               ))}
             </div>
           </div>
