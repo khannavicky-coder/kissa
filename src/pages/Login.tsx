@@ -62,9 +62,11 @@ const Login = () => {
     });
     setLoading(null);
     if (error) {
+      logEvent({ action: "auth.signin", status: "failure", error_message: error.message, metadata: { method: "email" } });
       toast.error(error.message.includes("Invalid") ? "Wrong email or password." : error.message);
       return;
     }
+    logEvent({ action: "auth.signin", metadata: { method: "email" } });
     toast.success("Welcome back ✨");
   };
 
