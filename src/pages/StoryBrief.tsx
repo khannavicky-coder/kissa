@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { createStory, deleteChild, listChildren, type Child } from "@/lib/supabaseService";
+import { logEvent } from "@/lib/audit";
 
 const ANIMAL_EMOJI: Record<string, string> = {
   cat: "🐱", fox: "🦊", bear: "🐻", panda: "🐼", rabbit: "🐰", owl: "🦉", frog: "🐸", lion: "🦁",
