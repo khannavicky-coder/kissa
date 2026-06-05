@@ -130,17 +130,42 @@ const Home = () => {
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {children.map((c) => (
-              <button
+              <div
                 key={c.id}
-                onClick={() => navigate(`/story/new?childId=${c.id}`)}
-                className="flex min-w-[120px] flex-col items-center gap-2 rounded-3xl bg-card/70 p-4 backdrop-blur-sm border border-border hover:border-gold/60 transition-colors"
+                className="relative flex min-w-[120px] flex-col items-center gap-2 rounded-3xl bg-card/70 p-4 backdrop-blur-sm border border-border hover:border-gold/60 transition-colors"
               >
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-gold text-3xl shadow-gold">
-                  {ANIMAL_EMOJI[c.avatar] ?? "⭐"}
-                </div>
-                <p className="font-display text-sm font-bold text-cream">{c.name}</p>
-                <p className="text-[10px] uppercase tracking-widest text-gold-soft">{c.age} years</p>
-              </button>
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const prev = children;
+                    setChildren((list) => list.filter((x) => x.id !== c.id));
+                    try {
+                      await deleteChild(c.id);
+                      console.info("[child:deleted]", { id: c.id, name: c.name, by: user?.id, at: new Date().toISOString() });
+                      toast.success(`${c.name}'s profile removed`);
+                    } catch {
+                      setChildren(prev);
+                      toast.error("Couldn't remove profile");
+                    }
+                  }}
+                  aria-label={`Remove ${c.name}`}
+                  className="absolute right-1.5 top-1.5 z-10 rounded-full p-1.5 text-cream/60 hover:bg-destructive/20 hover:text-destructive transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/story/new?childId=${c.id}`)}
+                  className="flex flex-col items-center gap-2 focus:outline-none"
+                >
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-gold text-3xl shadow-gold">
+                    {ANIMAL_EMOJI[c.avatar] ?? "⭐"}
+                  </div>
+                  <p className="font-display text-sm font-bold text-cream">{c.name}</p>
+                  <p className="text-[10px] uppercase tracking-widest text-gold-soft">{c.age} years</p>
+                </button>
+              </div>
             ))}
             {children.length < 2 && (
               <button
