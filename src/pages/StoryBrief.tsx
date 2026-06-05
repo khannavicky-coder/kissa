@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2, Wand2 } from "lucide-react";
+import { Loader2, Trash2, Wand2 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,11 @@ import { AppHeader, AppShell } from "@/components/AppShell";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { createStory, listChildren, type Child } from "@/lib/supabaseService";
+import { createStory, deleteChild, listChildren, type Child } from "@/lib/supabaseService";
+
+const ANIMAL_EMOJI: Record<string, string> = {
+  cat: "🐱", fox: "🦊", bear: "🐻", panda: "🐼", rabbit: "🐰", owl: "🦉", frog: "🐸", lion: "🦁",
+};
 
 const LESSONS = [
   "Saving up for something special",
