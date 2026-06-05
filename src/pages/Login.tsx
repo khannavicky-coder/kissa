@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Stars } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
+import { logEvent } from "@/lib/audit";
 
 const schema = z.object({
   email: z.string().trim().email("Please enter a valid email").max(255),
@@ -62,9 +63,11 @@ const Login = () => {
     });
     setLoading(null);
     if (error) {
+      logEvent({ action: "auth.signin", status: "failure", error_message: error.message, metadata: { method: "email" } });
       toast.error(error.message.includes("Invalid") ? "Wrong email or password." : error.message);
       return;
     }
+    logEvent({ action: "auth.signin", metadata: { method: "email" } });
     toast.success("Welcome back ✨");
   };
 

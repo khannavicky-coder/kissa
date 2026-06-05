@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { createStory, deleteChild, listChildren, type Child } from "@/lib/supabaseService";
+import { logEvent } from "@/lib/audit";
 
 const ANIMAL_EMOJI: Record<string, string> = {
   cat: "🐱", fox: "🦊", bear: "🐻", panda: "🐼", rabbit: "🐰", owl: "🦉", frog: "🐸", lion: "🦁",
@@ -120,6 +121,7 @@ const StoryBrief = () => {
       navigate(`/preview/${draft.id}`, { replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong";
+      logEvent({ action: "story.generate", status: "failure", entity_type: "child", entity_id: childId ?? null, error_message: msg });
       toast.error(msg);
       setSubmitting(false);
     }
