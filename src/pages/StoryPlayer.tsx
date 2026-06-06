@@ -43,6 +43,7 @@ const StoryPlayer = () => {
   const [glowVoiceId, setGlowVoiceId] = useState<string | null>(null);
   const [resynthesizing, setResynthesizing] = useState(false);
   const [overrideAudioUrl, setOverrideAudioUrl] = useState<string | null>(null);
+  const [resolvedAudioUrl, setResolvedAudioUrl] = useState<string | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
