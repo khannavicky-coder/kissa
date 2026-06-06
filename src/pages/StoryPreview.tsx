@@ -155,10 +155,13 @@ const StoryPreview = () => {
         toast.error(data.error || "Narration is unavailable right now. Please try again later.");
         return;
       }
+      const audioPath = (data?.audioPath ?? "").toString();
       const audioUrl = (data?.audioUrl ?? "").toString();
-      if (!audioUrl) throw new Error("No audio returned");
+      if (!audioPath && !audioUrl) throw new Error("No audio returned");
       await updateStory(story.id, {
-        audio_url: audioUrl,
+        // Persist the durable storage path so we can re-sign on each playback.
+        // Fall back to the signed URL for legacy compatibility.
+        audio_url: audioPath || audioUrl,
         status: "ready",
       });
       toast.success("Your story is ready ✨");

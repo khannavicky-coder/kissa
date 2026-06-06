@@ -139,7 +139,22 @@ serve(async (req) => {
     const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY")?.trim() || "";
     const SUPABASE_URL = getRequiredEnv("SUPABASE_URL");
     const SERVICE_ROLE_KEY = getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const SUPABASE_ANON_KEY = getRequiredEnv("SUPABASE_ANON_KEY");
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")?.trim() || "";
+
+    // Identify caller — required so audio is stored under their folder and
+    // protected by storage RLS (the bucket is private).
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return json(401, { error: "Not authenticated" });
+    }
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) return json(401, { error: "Not authenticated" });
+    const userId = userData.user.id;
 
     let body: { storyText?: string; voiceId?: string };
     try {
@@ -181,16 +196,16 @@ serve(async (req) => {
       );
     }
 
-    // ── Step 3: Upload to Supabase Storage ────────────────────────────────────
+    // ── Step 3: Upload to Supabase Storage (private, scoped to user folder) ───
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: { persistSession: false },
     });
 
-    const filename = `${Date.now()}-${provider}-${voiceId}.mp3`;
+    const objectPath = `${userId}/${Date.now()}-${provider}-${voiceId}.mp3`;
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
-      .upload(filename, new Uint8Array(audioBuffer), {
+      .upload(objectPath, new Uint8Array(audioBuffer), {
         contentType: "audio/mpeg",
         upsert: false,
       });
@@ -200,12 +215,17 @@ serve(async (req) => {
       return json(500, { error: `Failed to store audio: ${uploadError.message}` });
     }
 
-    const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(filename);
-    const audioUrl = publicUrlData?.publicUrl;
-    if (!audioUrl) return json(500, { error: "Failed to resolve public URL" });
+    // Short-lived signed URL for immediate playback. The client persists
+    // `audioPath` in `stories.audio_url` and re-signs it on later loads.
+    const { data: signed, error: signErr } = await supabase.storage
+      .from(BUCKET)
+      .createSignedUrl(objectPath, 60 * 60); // 1 hour
+    if (signErr || !signed?.signedUrl) {
+      console.error("Signed URL error:", signErr);
+      return json(500, { error: "Failed to sign audio URL" });
+    }
 
-    // Return audioUrl + which provider was used (useful for logging/debugging)
-    return json(200, { audioUrl, provider, voiceId });
+    return json(200, { audioUrl: signed.signedUrl, audioPath: objectPath, provider, voiceId });
 
   } catch (e) {
     console.error("synthesize-voice error:", e);
