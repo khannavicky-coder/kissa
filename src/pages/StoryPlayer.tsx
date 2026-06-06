@@ -261,7 +261,7 @@ const StoryPlayer = () => {
     );
   }
 
-  const audioSrc = overrideAudioUrl ?? story.audio_url;
+  const audioSrc = overrideAudioUrl ?? resolvedAudioUrl;
 
   return (
     <main className="relative min-h-screen w-full overflow-hidden bg-gradient-aurora">
