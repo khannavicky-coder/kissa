@@ -61,7 +61,33 @@ const StoryPlayer = () => {
     setPickerDone(false);
     setPickedVoiceId(null);
     setOverrideAudioUrl(null);
+    setOverrideAudioUrl(null);
+    setResolvedAudioUrl(null);
   }, [id, navigate]);
+
+  // Resolve story.audio_url. If it's a storage path (not a full URL), sign it
+  // against the private `story-audio` bucket so the audio element can fetch it.
+  useEffect(() => {
+    let cancelled = false;
+    const value = story?.audio_url ?? null;
+    if (!value) { setResolvedAudioUrl(null); return; }
+    if (/^https?:\/\//i.test(value)) {
+      setResolvedAudioUrl(value);
+      return;
+    }
+    supabase.storage
+      .from("story-audio")
+      .createSignedUrl(value, 60 * 60)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data?.signedUrl) {
+          setResolvedAudioUrl(null);
+          return;
+        }
+        setResolvedAudioUrl(data.signedUrl);
+      });
+    return () => { cancelled = true; };
+  }, [story?.audio_url]);
 
   // Load parent preference
   useEffect(() => {
