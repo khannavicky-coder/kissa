@@ -26,12 +26,27 @@ const CHARACTER_VOICES = [
 const PREVIEW_TEXT = "Once upon a time, in a land far away...";
 const CHARACTER_PREVIEW_TEXT = "Hello! I will tell your story tonight!";
 
+type RecState = "idle" | "recording" | "recorded" | "saving" | "success" | "error";
+
+const MIN_SECONDS = 10;
+
 const Record = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
+
+  // Recorder state
+  const [recState, setRecState] = useState<RecState>("idle");
+  const [seconds, setSeconds] = useState(0);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isPlayingBack, setIsPlayingBack] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
+  const timerRef = useRef<number | null>(null);
+  const playbackRef = useRef<HTMLAudioElement | null>(null);
 
   // Narrator voice state
   const [savedVoiceId, setSavedVoiceId] = useState<string>("JBFqnCBsd6RMkjVDRZzb");
@@ -49,20 +64,8 @@ const Record = () => {
     document.title = "Voice personalisation · Kissa";
   }, []);
 
-  // Pre-fill email, check waitlist, load saved narrator voice
   useEffect(() => {
     if (!user) return;
-    if (user.email) setEmail(user.email);
-
-    supabase
-      .from("voice_waitlist")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setSubmitted(true);
-      });
-
     supabase
       .from("profiles")
       .select("narrator_voice_id, child_picks_voice")
@@ -80,33 +83,107 @@ const Record = () => {
       });
   }, [user]);
 
-  const handleSubmit = async () => {
-    if (!user) return;
-    const trimmed = email.trim();
-    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-    setLoading(true);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) window.clearInterval(timerRef.current);
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const startRecording = async () => {
+    setErrorMsg(null);
     try {
-      const { error } = await supabase
-        .from("voice_waitlist")
-        .insert({ email: trimmed, user_id: user.id });
-      if (error) {
-        if (error.code === "23505") {
-          setSubmitted(true);
-        } else {
-          throw error;
-        }
-      } else {
-        setSubmitted(true);
-      }
+      const stream = await requestMicStream();
+      streamRef.current = stream;
+      const mimeType = pickRecorderMimeType();
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      chunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        setAudioBlob(blob);
+        if (audioUrl) URL.revokeObjectURL(audioUrl);
+        setAudioUrl(URL.createObjectURL(blob));
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+        setRecState("recorded");
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setSeconds(0);
+      setRecState("recording");
+      timerRef.current = window.setInterval(() => setSeconds((s) => s + 1), 1000);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setLoading(false);
+      toast.error("Microphone access denied — please allow the mic and try again.");
     }
   };
+
+  const stopRecording = () => {
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    mediaRecorderRef.current?.stop();
+  };
+
+  const togglePlayback = () => {
+    if (!audioUrl) return;
+    if (isPlayingBack && playbackRef.current) {
+      playbackRef.current.pause();
+      playbackRef.current.currentTime = 0;
+      setIsPlayingBack(false);
+      return;
+    }
+    const audio = new Audio(audioUrl);
+    playbackRef.current = audio;
+    audio.onended = () => setIsPlayingBack(false);
+    audio.play();
+    setIsPlayingBack(true);
+  };
+
+  const resetRecording = () => {
+    if (playbackRef.current) {
+      playbackRef.current.pause();
+      playbackRef.current = null;
+    }
+    setIsPlayingBack(false);
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    setAudioUrl(null);
+    setAudioBlob(null);
+    setSeconds(0);
+    setRecState("idle");
+    setErrorMsg(null);
+  };
+
+  const handleSaveMyVoice = async () => {
+    if (!audioBlob) return;
+    setRecState("saving");
+    setErrorMsg(null);
+    try {
+      const ext = audioBlob.type.includes("mp4") ? "mp4" : "webm";
+      const file = new File([audioBlob], `sample.${ext}`, { type: audioBlob.type || "audio/webm" });
+      const form = new FormData();
+      form.append("audio", file);
+      const { data, error } = await supabase.functions.invoke("clone-voice", { body: form });
+      if (error) throw new Error(error.message || "Voice saving failed");
+      if (data?.error) throw new Error(data.error);
+      setRecState("success");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Unknown error");
+      setRecState("error");
+    }
+  };
+
+  const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
+  const ss = String(seconds % 60).padStart(2, "0");
+  const canStop = seconds >= MIN_SECONDS;
+
+
 
   const handlePlayPreview = async (voiceId: string, text: string = PREVIEW_TEXT) => {
     // If already playing this voice, stop
