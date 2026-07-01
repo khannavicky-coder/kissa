@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles, CheckCircle2, Play, Square, Check } from "lucide-react";
+import { ArrowLeft, Sparkles, CheckCircle2, Play, Square, Check, Mic, Pause, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Stars } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { pickRecorderMimeType, requestMicStream } from "@/lib/voiceService";
 import { toast } from "sonner";
+
 
 const NARRATOR_VOICES = [
   { id: "JBFqnCBsd6RMkjVDRZzb", name: "George", desc: "Warm & captivating — our favourite", badge: "Recommended" },
