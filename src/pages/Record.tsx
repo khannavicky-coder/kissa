@@ -289,48 +289,147 @@ const Record = () => {
           className="mt-10 flex flex-1 flex-col items-center text-center animate-fade-up"
           style={{ animationDelay: "0.05s" }}
         >
-          <div className="relative mb-8 flex h-32 w-32 items-center justify-center rounded-full bg-gradient-gold shadow-gold">
-            <Sparkles className="h-14 w-14 text-primary-foreground" strokeWidth={2.2} />
-          </div>
-
           <span className="mb-4 inline-flex items-center gap-1 rounded-full bg-card/60 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-gold">
             Beta
           </span>
 
           <h1 className="font-display text-3xl font-black leading-[1.1] text-gold sm:text-4xl">
-            Voice personalisation coming soon
+            Record your voice
           </h1>
           <p className="mx-auto mt-4 max-w-sm text-base text-cream/80">
-            Your stories will be narrated in a warm storytelling voice during beta. We'll re-enable
-            custom voice cloning very soon ✨
+            Read for 1-2 minutes in a quiet room. Your stories will be narrated in your voice.
           </p>
 
-          {submitted ? (
-            <div className="mt-8 flex flex-col items-center gap-2 rounded-2xl border border-border bg-card/60 p-5 backdrop-blur-sm animate-fade-up">
-              <CheckCircle2 className="h-8 w-8 text-gold" />
-              <p className="max-w-xs text-sm font-semibold text-cream">
-                You're on the list! We'll email you the moment your voice recording is ready.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-8 flex w-full max-w-sm flex-col gap-3 animate-fade-up">
-              <Input
-                type="email"
-                placeholder="Your email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="h-14 rounded-2xl border-border bg-card/60 px-5 text-base text-cream placeholder:text-cream/40 backdrop-blur-sm"
-              />
-              <Button
+          {/* Recorder */}
+          <div className="mt-8 flex w-full max-w-sm flex-col items-center gap-5">
+            {recState === "idle" && (
+              <button
                 type="button"
-                onClick={handleSubmit}
-                disabled={loading}
-                className="h-14 w-full rounded-2xl bg-gradient-gold text-base font-bold text-primary-foreground shadow-gold transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                onClick={startRecording}
+                aria-label="Start recording"
+                className="flex h-32 w-32 items-center justify-center rounded-full bg-gradient-gold shadow-gold transition-transform hover:scale-105 active:scale-95"
               >
-                {loading ? "Saving…" : "Notify me when it's ready"}
-              </Button>
-            </div>
-          )}
+                <Mic className="h-14 w-14 text-primary-foreground" strokeWidth={2.2} />
+              </button>
+            )}
+
+            {recState === "recording" && (
+              <>
+                <div className="flex h-32 w-32 items-center justify-center rounded-full bg-destructive/20 ring-4 ring-destructive/40 animate-pulse">
+                  <Mic className="h-14 w-14 text-destructive" strokeWidth={2.2} />
+                </div>
+                <div className="font-display text-3xl font-bold tabular-nums text-cream">
+                  {mm}:{ss}
+                </div>
+                <div className="flex h-10 items-end gap-1" aria-hidden>
+                  {Array.from({ length: 24 }).map((_, i) => (
+                    <span
+                      key={i}
+                      className="w-1.5 rounded-full bg-gold"
+                      style={{
+                        height: `${20 + Math.abs(Math.sin((seconds + i) * 0.9)) * 60}%`,
+                        animation: `pulse 0.9s ease-in-out ${i * 0.05}s infinite`,
+                      }}
+                    />
+                  ))}
+                </div>
+                {canStop ? (
+                  <Button
+                    type="button"
+                    onClick={stopRecording}
+                    className="h-14 w-full rounded-2xl bg-gradient-gold text-base font-bold text-primary-foreground shadow-gold"
+                  >
+                    <Square className="h-5 w-5 mr-2 fill-primary-foreground" /> Stop recording
+                  </Button>
+                ) : (
+                  <p className="text-xs text-cream/60">
+                    Keep going… stop enabled at {MIN_SECONDS}s ({MIN_SECONDS - seconds}s left)
+                  </p>
+                )}
+              </>
+            )}
+
+            {recState === "recorded" && (
+              <>
+                <div className="font-display text-2xl font-bold tabular-nums text-cream">
+                  {mm}:{ss}
+                </div>
+                <button
+                  type="button"
+                  onClick={togglePlayback}
+                  aria-label={isPlayingBack ? "Pause playback" : "Play recording"}
+                  className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-gold bg-card/60 backdrop-blur-sm transition-transform hover:scale-105 active:scale-95"
+                >
+                  {isPlayingBack ? (
+                    <Pause className="h-9 w-9 text-gold fill-gold" />
+                  ) : (
+                    <Play className="h-9 w-9 text-gold fill-gold" />
+                  )}
+                </button>
+                <Button
+                  type="button"
+                  onClick={handleSaveMyVoice}
+                  className="h-14 w-full rounded-2xl bg-gradient-gold text-base font-bold text-primary-foreground shadow-gold transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Save my voice
+                </Button>
+                <button
+                  type="button"
+                  onClick={resetRecording}
+                  className="flex items-center gap-1 text-sm font-semibold text-cream/70 hover:text-gold"
+                >
+                  <RotateCcw className="h-4 w-4" /> Record again
+                </button>
+              </>
+            )}
+
+            {recState === "saving" && (
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card/60 p-6 backdrop-blur-sm w-full">
+                <div className="h-10 w-10 rounded-full border-4 border-gold/30 border-t-gold animate-spin" />
+                <p className="font-semibold text-cream">Creating your voice...</p>
+              </div>
+            )}
+
+            {recState === "success" && (
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-gold/40 bg-card/60 p-6 backdrop-blur-sm w-full animate-fade-up">
+                <CheckCircle2 className="h-12 w-12 text-gold" />
+                <p className="text-center text-sm font-semibold text-cream">
+                  Your voice is ready! Stories will now be narrated in your voice.
+                </p>
+                <Button
+                  type="button"
+                  onClick={() => navigate("/home")}
+                  className="mt-2 h-12 w-full rounded-2xl bg-gradient-gold font-bold text-primary-foreground shadow-gold"
+                >
+                  Back to home
+                </Button>
+              </div>
+            )}
+
+            {recState === "error" && (
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-destructive/40 bg-card/60 p-6 backdrop-blur-sm w-full animate-fade-up">
+                <p className="text-center text-sm font-semibold text-cream">
+                  Voice saving failed. Please try again or contact support.
+                </p>
+                {errorMsg && <p className="text-xs text-cream/50">{errorMsg}</p>}
+                <Button
+                  type="button"
+                  onClick={handleSaveMyVoice}
+                  className="mt-2 h-12 w-full rounded-2xl bg-gradient-gold font-bold text-primary-foreground shadow-gold"
+                >
+                  Try again
+                </Button>
+                <button
+                  type="button"
+                  onClick={resetRecording}
+                  className="flex items-center gap-1 text-sm font-semibold text-cream/70 hover:text-gold"
+                >
+                  <RotateCcw className="h-4 w-4" /> Record again
+                </button>
+              </div>
+            )}
+          </div>
+
 
           {/* Narrator voices section */}
           <div className="mt-12 w-full max-w-sm text-left animate-fade-up" style={{ animationDelay: "0.15s" }}>
