@@ -166,9 +166,31 @@ serve(async (req) => {
     const storyText = (body?.storyText ?? "").toString().trim();
     if (!storyText) return json(400, { error: "Missing storyText" });
 
-    // Use caller-supplied voiceId, fall back to George
+    // ── Resolve voice with priority: cloned voice > request voiceId > George ──
     const requestedVoiceId = (body?.voiceId ?? "").toString().trim();
-    const voiceId = /^[A-Za-z0-9]+$/.test(requestedVoiceId) ? requestedVoiceId : EL_VOICE_ID;
+    let voiceId = /^[A-Za-z0-9]+$/.test(requestedVoiceId) ? requestedVoiceId : EL_VOICE_ID;
+
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+    });
+
+    try {
+      const { data: profile } = await admin
+        .from("voice_profiles")
+        .select("elevenlabs_voice_id, status")
+        .eq("parent_user_id", userId)
+        .maybeSingle();
+      if (
+        profile?.elevenlabs_voice_id &&
+        profile.status === "ready" &&
+        /^[A-Za-z0-9]+$/.test(profile.elevenlabs_voice_id)
+      ) {
+        voiceId = profile.elevenlabs_voice_id;
+        console.log("Using parent's cloned voice.");
+      }
+    } catch (e) {
+      console.warn("voice_profiles lookup failed, using fallback voice:", e);
+    }
 
     // ── Step 1: Try ElevenLabs (skip if key not configured) ───────────────────
     let audioBuffer: ArrayBuffer | null = null;
@@ -179,6 +201,7 @@ serve(async (req) => {
     } else {
       console.warn("ELEVENLABS_API_KEY not configured — using OpenAI TTS directly.");
     }
+
 
     // ── Step 2: Auto-fallback to OpenAI TTS if quota hit ──────────────────────
     if (audioBuffer === null) {

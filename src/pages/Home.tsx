@@ -188,7 +188,9 @@ const Home = () => {
       {!loading && children.length > 0 && (
         <div className="mt-4 flex items-center justify-between animate-fade-up">
           <p className="text-xs text-cream/60">
-            {childPicksVoice
+            {voice?.elevenlabs_voice_id && voice.status === "ready"
+              ? "🎙 Your voice"
+              : childPicksVoice
               ? "🎲 Your child picks tonight's voice"
               : VOICE_EMOJI_NAME[narratorVoiceId ?? "JBFqnCBsd6RMkjVDRZzb"] ?? narratorVoiceId}
           </p>
@@ -199,6 +201,7 @@ const Home = () => {
           )}
         </div>
       )}
+
 
       {/* Primary CTA */}
       {!loading && children.length > 0 && (

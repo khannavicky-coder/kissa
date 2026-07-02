@@ -7,6 +7,17 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getProfile, getVoiceProfile, signOut, type Profile, type VoiceProfile } from "@/lib/supabaseService";
 
+const NARRATOR_NAMES: Record<string, string> = {
+  JBFqnCBsd6RMkjVDRZzb: "George",
+  "21m00Tcm4TlvDq8ikWAM": "Rachel",
+  onwK4e9ZLuTAKqWW03F9: "Daniel",
+  MF3mGyEYCl7XYWbV9V6O: "Elli",
+  xwUbPOIZ6ZbN2HDwIH9H: "Squeaky Rabbit",
+  DV4mEkJgV8ZwNCOrjF7L: "Grumpy Bear",
+  "9m6m0XokgtJFpqsimBiN": "Giggly Monkey",
+  AVYJxaX5Uon5HKPfdVo9: "Tiny Mouse",
+};
+
 const Settings = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -64,15 +75,13 @@ const Settings = () => {
           icon={Mic}
           title="My voice"
           subtitle={
-            voice?.status === "ready"
-              ? "Voice ready ✨"
-              : voice?.status === "pending"
-              ? "Cloning your voice…"
-              : voice?.status === "failed"
-              ? "Cloning failed — try again"
-              : "Record a 30-second sample"
+            voice?.elevenlabs_voice_id && voice.status === "ready"
+              ? "Your voice ready"
+              : NARRATOR_NAMES[profile?.narrator_voice_id ?? "JBFqnCBsd6RMkjVDRZzb"] ??
+                "Record a 30-second sample"
           }
         />
+
         <Row to="/pricing" icon={CreditCard} title="Plan & billing" subtitle="Free plan" />
       </div>
 
