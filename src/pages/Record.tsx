@@ -294,11 +294,23 @@ const Record = () => {
           </span>
 
           <h1 className="font-display text-3xl font-black leading-[1.1] text-gold sm:text-4xl">
-            Record your voice
+            Read this story aloud — take your time
           </h1>
-          <p className="mx-auto mt-4 max-w-sm text-base text-cream/80">
-            Read for 1-2 minutes in a quiet room. Your stories will be narrated in your voice.
+
+          <div
+            className="mt-6 w-full max-w-sm rounded-2xl border-2 border-gold/50 bg-cream p-6 text-left shadow-gold"
+          >
+            <p
+              className="text-indigo-deep"
+              style={{ fontSize: "18px", lineHeight: 1.7 }}
+            >
+              Once upon a time, in a little house under the stars, a child curled up under a warm blanket and waited. Tonight's story was about a brave little fox who wanted to cross the big river. Everyone said it was too wide, too cold, and too fast. But the fox sat quietly at the edge, watched the water, and found a path of stepping stones no one else had noticed. One careful step at a time, she crossed. When she reached the other side, she turned around, smiled, and whispered — I knew I could do it. And somewhere, far away, a child smiled too. Because the best stories always find their way home.
+            </p>
+          </div>
+          <p className="mt-3 text-xs text-cream/60">
+            Read slowly in a quiet room. One minute is enough.
           </p>
+
 
           {/* Recorder */}
           <div className="mt-8 flex w-full max-w-sm flex-col items-center gap-5">
