@@ -64,15 +64,13 @@ const Settings = () => {
           icon={Mic}
           title="My voice"
           subtitle={
-            voice?.status === "ready"
-              ? "Voice ready ✨"
-              : voice?.status === "pending"
-              ? "Cloning your voice…"
-              : voice?.status === "failed"
-              ? "Cloning failed — try again"
-              : "Record a 30-second sample"
+            voice?.elevenlabs_voice_id && voice.status === "ready"
+              ? "Your voice ready"
+              : NARRATOR_NAMES[profile?.narrator_voice_id ?? "JBFqnCBsd6RMkjVDRZzb"] ??
+                "Record a 30-second sample"
           }
         />
+
         <Row to="/pricing" icon={CreditCard} title="Plan & billing" subtitle="Free plan" />
       </div>
 
