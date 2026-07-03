@@ -41,7 +41,7 @@ const NotFound = () => {
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-gradient-aurora px-6 py-12">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-indigo-soft/40 to-indigo-deep"
+        className="pointer-events-none absolute inset-0"
         style={{ background: "var(--gradient-night)", backgroundAttachment: "fixed" }}
       />
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -77,7 +77,7 @@ const NotFound = () => {
 
         <Link
           to="/home"
-          className="mt-8 inline-flex items-center justify-center rounded-full bg-gradient-gold px-8 py-3 text-sm font-semibold text-indigo-deep shadow-gold transition-transform hover:scale-105"
+          className="mt-8 inline-flex items-center justify-center rounded-full bg-gradient-gold px-8 py-3 text-sm font-semibold text-primary-foreground shadow-gold transition-transform hover:scale-105"
         >
           Back to home
         </Link>
